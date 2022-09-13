@@ -1,0 +1,4 @@
+*.ignore
+.env
+*.exe
+token.txt
