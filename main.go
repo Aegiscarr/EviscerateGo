@@ -103,7 +103,7 @@ var (
 			err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
-					Content: "Pong!",
+					Content: "Pong! Latency:" + s.HeartbeatLatency().String(),
 				},
 			})
 			if err != nil {
@@ -148,6 +148,7 @@ var (
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
 						Content: fmt.Sprintf("Echo sent to %s:\n```%s```", channelobj.Mention(), messagecontent),
+						Flags:   discordgo.MessageFlagsEphemeral,
 					},
 				})
 				if err != nil {
@@ -164,6 +165,11 @@ var (
 func main() {
 	s.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
 		log.Printf("Logged in as: %v#%v", s.State.User.Username, s.State.User.Discriminator)
+
+		s.UpdateStatusComplex(discordgo.UpdateStatusData{
+			Activities: []*discordgo.Activity{{Type: discordgo.ActivityTypeWatching}},
+			Status:     "over Electron",
+		})
 	})
 	err := s.Open()
 	if err != nil {
