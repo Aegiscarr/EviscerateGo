@@ -1,12 +1,18 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"log"
+	"math/rand"
+	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 
+	"github.com/Aegiscarr/randomcolor"
 	"github.com/bwmarrin/discordgo"
 )
 
@@ -22,8 +28,14 @@ var (
 
 var s *discordgo.Session
 
+//var dicerolls = [`Luck really isn't on your side today, huh? It's a 1.`, `A 2. Couldn't have been much worse.`, `It's a tree!- Oh, wait. A 3.`, `A four-se. Of course. That didn't work, did it?`, `A 5. Nothing funny here.`, `A 6. The devil, anyone?`, `Lucky number 7! Now can you get two more?`, `8, not bad.`, `Just under halfway up. A 9`, `A 10! Halfway up the scale!`, `11. Decent.`, `12. Could have been much worse. Could've also been better, though.`, `13. Feelin' lucky?`, `Aand it's come up 14!`, `15! Getting up there!`, `16, solid.`, `17. Rolling real high now, aren't you?`, `18! You're old eno- wait this isn't a birthday.`, `19! So CLOSE!`, `NAT 20 BAYBEE!`]
+
 type ExtendedCommand struct {
 	applicationcommand *discordgo.ApplicationCommand
+}
+
+type RandomDevExcuse struct {
+	Data string `json:"data"`
 }
 
 func init() {
@@ -69,6 +81,29 @@ func init() {
 	})
 }
 
+func GetDevExcuse() *RandomDevExcuse {
+	resp, err := http.Get(fmt.Sprintf("https://api.tabliss.io/v1/developer-excuses"))
+	if err != nil {
+		log.Fatalf("An error occured: %v", err)
+	}
+
+	var randomexcuse *RandomDevExcuse
+
+	err = json.NewDecoder(resp.Body).Decode(&randomexcuse)
+	if err != nil {
+		var invalid *RandomDevExcuse
+		return invalid
+	}
+
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+
+		}
+	}(resp.Body)
+	return randomexcuse
+}
+
 var (
 	commands = []*ExtendedCommand{
 		{
@@ -95,6 +130,30 @@ var (
 						Required:    true,
 					},
 				},
+			},
+		},
+		{
+			applicationcommand: &discordgo.ApplicationCommand{
+				Name:        "devexcuse",
+				Description: "Grabs a random excuse from developerexcuses.com",
+			},
+		},
+		{
+			applicationcommand: &discordgo.ApplicationCommand{
+				Name:        "d20",
+				Description: "Roll a d20",
+			},
+		},
+		{
+			applicationcommand: &discordgo.ApplicationCommand{
+				Name:        "pke",
+				Description: "Shows an explanation about PluralKit and multiplicity",
+			},
+		},
+		{
+			applicationcommand: &discordgo.ApplicationCommand{
+				Name:        "randomcolor",
+				Description: "Generates a random color",
 			},
 		},
 	}
@@ -159,6 +218,121 @@ var (
 			}
 
 		},
+		"devexcuse": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			var randomexcuse = GetDevExcuse()
+			var randomexcuseQuoted = `"` + randomexcuse.Data + `"`
+			var err error
+			err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: randomexcuseQuoted,
+				},
+			})
+			if err != nil {
+				return
+			}
+		},
+		"d20": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			var err error
+			var diceroll int = rand.Intn(20)
+			dicerolls := [20]string{`Luck really isn't on your side today, huh? It's a 1.`, `A 2. Couldn't have been much worse.`, `It's a tree!- Oh, wait. A 3.`, `A four-se. Of course. That didn't work, did it?`, `A 5. Nothing funny here.`, `A 6. The devil, anyone?`, `Lucky number 7! Now can you get two more?`, `8, not bad.`, `Just under halfway up. A 9`, `A 10! Halfway up the scale!`, `11. Decent.`, `12. Could have been much worse. Could've also been better, though.`, `13. Feelin' lucky?`, `Aand it's come up 14!`, `15! Getting up there!`, `16, solid.`, `17. Rolling real high now, aren't you?`, `18! You're old eno- wait this isn't a birthday.`, `19! So CLOSE!`, `NAT 20 BAYBEE!`}
+			err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: dicerolls[diceroll],
+				},
+			})
+			if err != nil {
+				return
+			}
+		},
+		"pke": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			var err error
+			err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Embeds: []*discordgo.MessageEmbed{
+						{
+							Title:       "Why does that person have the [BOT] tag?",
+							Color:       0x8c1bb1,
+							Description: "On this server we cater to people who experience plurality (or multiplicity) \nBots like PluralKit help these people express themselves easier. \n \nDue to discord limitations, these people show up with the [BOT] tag, but rest assured they are not bots.",
+							Fields: []*discordgo.MessageEmbedField{
+								&discordgo.MessageEmbedField{
+									Name:  "A brief explanation of plurality",
+									Value: "There's a lot more to it than what I'm showing here, but essentially plurality is the existence of multiple self-aware entities (they don't necessarily have to be people) in one brain. It's like having roommates inside your head.",
+								},
+								&discordgo.MessageEmbedField{
+									Name:  "Better explanations and more resources",
+									Value: `[MoreThanOne](https://morethanone.info/)`,
+								},
+							},
+						},
+					},
+				},
+			})
+			if err != nil {
+				return
+			}
+		},
+		"randomcolor": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+
+			var RandomColorHex string = randomcolor.GetRandomColorInHex()
+			var RandomColorRGB randomcolor.RGBColor = randomcolor.GetRandomColorInRgb()
+			var red string = strconv.Itoa(RandomColorRGB.Red)
+			var green string = strconv.Itoa(RandomColorRGB.Green)
+			var blue string = strconv.Itoa(RandomColorRGB.Blue)
+			var RandomColorHSV randomcolor.HSVColor = randomcolor.RGBToHSV(RandomColorRGB)
+			var hue string = strconv.FormatFloat(RandomColorHSV.Hue, 'f', 0, 64)
+			var sat string = strconv.FormatFloat(RandomColorHSV.Saturation, 'f', 0, 64)
+			var val string = strconv.FormatFloat(RandomColorHSV.Value, 'f', 0, 64)
+			var RandomColorHexInt64, res = strconv.ParseInt(RandomColorHex, 16, 32)
+			var err error
+
+			log.Println("Red: " + red)
+			log.Println("Green: " + green)
+			log.Println("Blue: " + blue)
+			log.Println("Hue: " + hue)
+			log.Println("Sat: " + sat)
+			log.Println("Val: " + val)
+			log.Println("---")
+
+			err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Embeds: []*discordgo.MessageEmbed{
+						{
+							Title: "Random color",
+							Color: int(RandomColorHexInt64),
+							Thumbnail: &discordgo.MessageEmbedThumbnail{
+								URL:    "https://singlecolorimage.com/get/" + RandomColorHex + "/100x100",
+								Width:  100,
+								Height: 100,
+							},
+							Fields: []*discordgo.MessageEmbedField{
+								&discordgo.MessageEmbedField{
+									Name:  "Hex",
+									Value: "#" + RandomColorHex,
+								},
+								&discordgo.MessageEmbedField{
+									Name:  "RGB",
+									Value: "[" + red + ", " + green + ", " + blue + "]",
+								},
+								&discordgo.MessageEmbedField{
+									Name:  "HSV",
+									Value: hue + "°, " + sat + "%, " + val + "%",
+								},
+							},
+						},
+					},
+				},
+			})
+			if err != nil {
+				return
+			}
+			if res != nil {
+				return
+			}
+		},
 	}
 )
 
@@ -192,7 +366,6 @@ func main() {
 
 	s.UpdateStatusComplex(discordgo.UpdateStatusData{
 		Activities: []*discordgo.Activity{{Type: 3, Name: "over the Den"}},
-		//	Status:     "over the Den",
 	})
 
 	stop := make(chan os.Signal, 1)
@@ -219,5 +392,10 @@ func main() {
 	}
 
 	log.Println("Graceful shutdown")
-
 }
+
+//func getRandomColor() {
+//	var randHex string = randomcolor.GetRandomColorInHex()
+//	var randRGB randomcolor.RGBColor = randomcolor.GetRandomColorInRgb()
+//	var randHSV randomcolor.HSVColor = randomcolor.GetRandomColorInHSV()
+//}
