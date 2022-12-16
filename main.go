@@ -11,10 +11,21 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
+	"time"
 
-	"github.com/Aegiscarr/randomcolor"
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
+
 	"github.com/bwmarrin/discordgo"
+	"github.com/lucasb-eyer/go-colorful"
 )
+
+// IDEAS
+// fun facts
+// generate bitmap from image
+// autogenerate css font change
 
 // BotToken Flags
 var (
@@ -27,8 +38,6 @@ var (
 )
 
 var s *discordgo.Session
-
-//var dicerolls = [`Luck really isn't on your side today, huh? It's a 1.`, `A 2. Couldn't have been much worse.`, `It's a tree!- Oh, wait. A 3.`, `A four-se. Of course. That didn't work, did it?`, `A 5. Nothing funny here.`, `A 6. The devil, anyone?`, `Lucky number 7! Now can you get two more?`, `8, not bad.`, `Just under halfway up. A 9`, `A 10! Halfway up the scale!`, `11. Decent.`, `12. Could have been much worse. Could've also been better, though.`, `13. Feelin' lucky?`, `Aand it's come up 14!`, `15! Getting up there!`, `16, solid.`, `17. Rolling real high now, aren't you?`, `18! You're old eno- wait this isn't a birthday.`, `19! So CLOSE!`, `NAT 20 BAYBEE!`]
 
 type ExtendedCommand struct {
 	applicationcommand *discordgo.ApplicationCommand
@@ -81,29 +90,6 @@ func init() {
 	})
 }
 
-func GetDevExcuse() *RandomDevExcuse {
-	resp, err := http.Get(fmt.Sprintf("https://api.tabliss.io/v1/developer-excuses"))
-	if err != nil {
-		log.Fatalf("An error occured: %v", err)
-	}
-
-	var randomexcuse *RandomDevExcuse
-
-	err = json.NewDecoder(resp.Body).Decode(&randomexcuse)
-	if err != nil {
-		var invalid *RandomDevExcuse
-		return invalid
-	}
-
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-
-		}
-	}(resp.Body)
-	return randomexcuse
-}
-
 var (
 	commands = []*ExtendedCommand{
 		{
@@ -154,6 +140,76 @@ var (
 			applicationcommand: &discordgo.ApplicationCommand{
 				Name:        "randomcolor",
 				Description: "Generates a random color",
+			},
+		},
+		{
+			applicationcommand: &discordgo.ApplicationCommand{
+				Name:        "color",
+				Description: "Generates an embed with info about a color",
+				Options: []*discordgo.ApplicationCommandOption{
+					{
+						Type:        discordgo.ApplicationCommandOptionString,
+						Name:        "color",
+						Description: "The color you want to convert (Hex/RGB/HSV)",
+						Required:    true,
+					},
+				},
+			},
+		},
+		//{
+		//	applicationcommand: &discordgo.ApplicationCommand{
+		//		Name:        "coinflip",
+		//		Description: "Flips a coin.",
+		//		//Options: []*discordgo.ApplicationCommandOption{
+		//		//	{
+		//		//		Type: discordgo.ApplicationCommandOptionString,
+		//		//		Name: "coin",
+		//		//		Description: "The coin you wish to flip, defaults to EUR",
+		//		//		Required: true,
+		//		//	},
+		//		//},
+		//	},
+		//},
+		{
+			applicationcommand: &discordgo.ApplicationCommand{
+				Name:        "owoify",
+				Description: "owoify a string",
+				Options: []*discordgo.ApplicationCommandOption{
+					{
+						Type:        discordgo.ApplicationCommandOptionString,
+						Name:        "string",
+						Description: "text to owoify",
+						Required:    true,
+					},
+				},
+			},
+		},
+		{
+			applicationcommand: &discordgo.ApplicationCommand{
+				Name:        "bitmap",
+				Description: "convert an image to a text bitmap (JPG/PNG/GIF, not animated)",
+				Options: []*discordgo.ApplicationCommandOption{
+					{
+						Type:        discordgo.ApplicationCommandOptionAttachment,
+						Name:        "image",
+						Description: "image to convert",
+						Required:    true,
+					},
+				},
+			},
+		},
+		{
+			applicationcommand: &discordgo.ApplicationCommand{
+				Name:        "userinfo",
+				Description: "shows a whole bunch of info about a user in a neatly formatted embed",
+				Options: []*discordgo.ApplicationCommandOption{
+					{
+						Type:        discordgo.ApplicationCommandOptionUser,
+						Name:        "user",
+						Description: "the user you want to get info of",
+						Required:    true,
+					},
+				},
 			},
 		},
 	}
@@ -233,6 +289,7 @@ var (
 			}
 		},
 		"d20": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			rand.Seed(time.Now().UnixNano())
 			var err error
 			var diceroll int = rand.Intn(20)
 			dicerolls := [20]string{`Luck really isn't on your side today, huh? It's a 1.`, `A 2. Couldn't have been much worse.`, `It's a tree!- Oh, wait. A 3.`, `A four-se. Of course. That didn't work, did it?`, `A 5. Nothing funny here.`, `A 6. The devil, anyone?`, `Lucky number 7! Now can you get two more?`, `8, not bad.`, `Just under halfway up. A 9`, `A 10! Halfway up the scale!`, `11. Decent.`, `12. Could have been much worse. Could've also been better, though.`, `13. Feelin' lucky?`, `Aand it's come up 14!`, `15! Getting up there!`, `16, solid.`, `17. Rolling real high now, aren't you?`, `18! You're old eno- wait this isn't a birthday.`, `19! So CLOSE!`, `NAT 20 BAYBEE!`}
@@ -276,62 +333,356 @@ var (
 		},
 		"randomcolor": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 
-			var RandomColorHex string = randomcolor.GetRandomColorInHex()
-			var RandomColorRGB randomcolor.RGBColor = randomcolor.GetRandomColorInRgb()
-			var red string = strconv.Itoa(RandomColorRGB.Red)
-			var green string = strconv.Itoa(RandomColorRGB.Green)
-			var blue string = strconv.Itoa(RandomColorRGB.Blue)
-			var RandomColorHSV randomcolor.HSVColor = randomcolor.RGBToHSV(RandomColorRGB)
-			var hue string = strconv.FormatFloat(RandomColorHSV.Hue, 'f', 0, 64)
-			var sat string = strconv.FormatFloat(RandomColorHSV.Saturation, 'f', 0, 64)
-			var val string = strconv.FormatFloat(RandomColorHSV.Value, 'f', 0, 64)
-			var RandomColorHexInt64, res = strconv.ParseInt(RandomColorHex, 16, 32)
-			var err error
+			// RGB base to convert from
+			rand.Seed(time.Now().UnixNano())
+			var randomcolorRGB colorful.Color
+			randomcolorRGB.R = rand.Float64()
+			randomcolorRGB.G = rand.Float64()
+			randomcolorRGB.B = rand.Float64()
+			var randomRedReadable string = fmt.Sprintf("%.0f", randomcolorRGB.R*255)
+			var randomGreenReadable string = fmt.Sprintf("%.0f", randomcolorRGB.G*255)
+			var randomBlueReadable string = fmt.Sprintf("%.0f", randomcolorRGB.B*255)
 
-			log.Println("Red: " + red)
-			log.Println("Green: " + green)
-			log.Println("Blue: " + blue)
-			log.Println("Hue: " + hue)
-			log.Println("Sat: " + sat)
-			log.Println("Val: " + val)
-			log.Println("---")
+			// HEX
+			var randomColorHexTruncated string = strings.ReplaceAll(randomcolorRGB.Hex(), "#", "")
+			var RandomColorHexInt64, res = strconv.ParseInt(randomColorHexTruncated, 16, 32)
+
+			// HSV
+			var randomHue, randomSat, randomVal = randomcolorRGB.Hsv()
+			var randomHueReadable string = fmt.Sprintf("%.0f", randomHue)
+			var randomSatReadable string = fmt.Sprintf("%.0f", randomSat*100)
+			var randomValReadable string = fmt.Sprintf("%.0f", randomVal*100)
+
+			var err error
 
 			err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
 					Embeds: []*discordgo.MessageEmbed{
 						{
-							Title: "Random color",
+							Title: "Here's a random color!",
 							Color: int(RandomColorHexInt64),
 							Thumbnail: &discordgo.MessageEmbedThumbnail{
-								URL:    "https://singlecolorimage.com/get/" + RandomColorHex + "/100x100",
+								URL:    "https://singlecolorimage.com/get/" + randomColorHexTruncated + "/100x100",
 								Width:  100,
 								Height: 100,
 							},
 							Fields: []*discordgo.MessageEmbedField{
 								&discordgo.MessageEmbedField{
 									Name:  "Hex",
-									Value: "#" + RandomColorHex,
+									Value: randomcolorRGB.Hex(),
 								},
 								&discordgo.MessageEmbedField{
 									Name:  "RGB",
-									Value: "[" + red + ", " + green + ", " + blue + "]",
+									Value: "[" + randomRedReadable + ", " + randomGreenReadable + ", " + randomBlueReadable + "]",
 								},
 								&discordgo.MessageEmbedField{
 									Name:  "HSV",
-									Value: hue + "°, " + sat + "%, " + val + "%",
+									Value: randomHueReadable + "°, " + randomSatReadable + "%, " + randomValReadable + "%",
 								},
 							},
 						},
 					},
 				},
 			})
+
 			if err != nil {
 				return
 			}
 			if res != nil {
 				return
 			}
+		},
+		"color": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			var err, res error
+
+			options := i.ApplicationCommandData().Options
+
+			optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
+			for _, opt := range options {
+				optionMap[opt.Name] = opt
+			}
+
+			var (
+				colorType  string
+				colorInput string
+
+				colSepHue string
+				colSepSat string
+				colSepVal string
+
+				colSepRed   string
+				colSepGreen string
+				colSepBlue  string
+
+				colSepHueF64 float64
+				colSepSatF64 float64
+				colSepValF64 float64
+
+				colSepRedInt   int
+				colSepGreenInt int
+				colSepBlueInt  int
+				colSepRedF64   float64
+				colSepGreenF64 float64
+				colSepBlueF64  float64
+
+				colorfulColor colorful.Color
+			)
+
+			// Get the value from the option map.
+			// When the option exists, ok = true
+			if option, ok := optionMap["color"]; ok {
+				// Option values must be type asserted from interface{}.
+				// Discordgo provides utility functions to make this simple.
+				colorInput = strings.ToLower(option.StringValue())
+			}
+
+			if strings.Contains(colorInput, "#") || strings.Contains(colorInput, "hex") {
+				colInTrunc := strings.ReplaceAll(strings.ReplaceAll(colorInput, "#", ""), "hex", "")
+				colorfulColor, res = colorful.Hex("#" + colInTrunc)
+
+				if res != nil {
+					colorType = "invalidHexcode"
+				} else {
+					colorType = "hex"
+				}
+			} else if strings.Contains(colorInput, "[") || strings.Contains(colorInput, "rgb") {
+				colorType = "rgb"
+				colInTrunc := strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(colorInput, "rgb", ""), ",", ""), "]", ""), "[", "")
+
+				fmt.Sscanf(colInTrunc, "%s %s %s", &colSepRed, &colSepGreen, &colSepBlue)
+				// string to int
+				colSepRedInt, res = strconv.Atoi(colSepRed)
+				colSepGreenInt, res = strconv.Atoi(colSepGreen)
+				colSepBlueInt, res = strconv.Atoi(colSepBlue)
+
+				// int to float64
+				colSepRedF64, res = strconv.ParseFloat(strconv.Itoa(colSepRedInt), 64)
+				colSepGreenF64, res = strconv.ParseFloat(strconv.Itoa(colSepGreenInt), 64)
+				colSepBlueF64, res = strconv.ParseFloat(strconv.Itoa(colSepBlueInt), 64)
+				colorfulColor.R = colSepRedF64 / 255
+				colorfulColor.G = colSepGreenF64 / 255
+				colorfulColor.B = colSepBlueF64 / 255
+
+				if colorfulColor.R > 1 || colorfulColor.G > 1 || colorfulColor.B > 1 || colorfulColor.R < 0 || colorfulColor.G < 0 || colorfulColor.B < 0 {
+					colorType = "invalidColorRGB"
+				}
+
+			} else if strings.Contains(colorInput, "%") || strings.Contains(colorInput, "hsv") || strings.Contains(colorInput, "deg") {
+				colorType = "hsv"
+				colInTrunc := strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(colorInput, ",", ""), "]", ""), "[", ""), "deg", ""), "hsv", ""), "%", "")
+
+				fmt.Sscanf(colInTrunc, "%s %s %s", &colSepHue, &colSepSat, &colSepVal)
+
+				colSepHueF64, res = strconv.ParseFloat(colSepHue, 64)
+				colSepSatF64, res = strconv.ParseFloat(colSepSat, 64)
+				colSepValF64, res = strconv.ParseFloat(colSepVal, 64)
+				if colSepSatF64 > 1 {
+					colSepSatF64 = colSepSatF64 / 100
+				}
+				if colSepValF64 > 1 {
+					colSepValF64 = colSepValF64 / 100
+				}
+				colorfulColor = colorful.Hsv(colSepHueF64, colSepSatF64, colSepValF64)
+
+				if colSepHueF64 > 360 || colSepHueF64 < 0 || colSepSatF64 < 0 || colSepSatF64 > 100 || colSepValF64 < 0 || colSepValF64 > 100 {
+					colorType = "invalidColorHSV"
+				}
+			} else {
+				colorType = "invalidColorType"
+			}
+
+			var HueStr, SatStr, ValStr = colorfulColor.Hsv()
+			var hexcolor, _ = strconv.ParseInt(strings.ReplaceAll(colorfulColor.Hex(), "#", ""), 16, 64)
+			if strings.Contains(colorType, "hsv") || strings.Contains(colorType, "rgb") || strings.Contains(colorType, "hex") {
+				err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Embeds: []*discordgo.MessageEmbed{
+							{
+								Title: "Here's your color!",
+								Color: int(hexcolor),
+								Thumbnail: &discordgo.MessageEmbedThumbnail{
+									URL:    "https://singlecolorimage.com/get/" + strconv.FormatInt(hexcolor, 16) + "/100x100",
+									Width:  100,
+									Height: 100,
+								},
+								Fields: []*discordgo.MessageEmbedField{
+									&discordgo.MessageEmbedField{
+										Name:  "Hex",
+										Value: colorfulColor.Hex(),
+									},
+									&discordgo.MessageEmbedField{
+										Name:  "RGB",
+										Value: "[" + fmt.Sprintf("%.0f", colorfulColor.R*255) + ", " + fmt.Sprintf("%.0f", colorfulColor.G*255) + ", " + fmt.Sprintf("%.0f", colorfulColor.B*255) + "]",
+									},
+									&discordgo.MessageEmbedField{
+										Name:  "HSV",
+										Value: fmt.Sprintf("%.0f", HueStr) + "°, " + fmt.Sprintf("%.0f", SatStr*100) + "%, " + fmt.Sprintf("%.0f", ValStr*100) + "%",
+									},
+								},
+							},
+						},
+					},
+				})
+			} else if colorType == "invalidColorType" {
+				err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Sorry, I couldn't figure out what color type this is. Try prefixing with `hex`, `rgb`, or `hsv`.",
+						Flags:   discordgo.MessageFlagsEphemeral,
+					},
+				})
+			} else if colorType == "invalidColorRGB" {
+				err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "One or more values in the color you entered are either too high or too low. Remember that RGB values have a range between 0 and 255.",
+						Flags:   discordgo.MessageFlagsEphemeral,
+					},
+				})
+			} else if colorType == "invalidColorHSV" {
+				err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "One or more values in the color you entered are either too high or too low. Remember that hue is an angle between 0 and 360 degrees, and that saturation and value (brightness) lie between 0-100%.",
+						Flags:   discordgo.MessageFlagsEphemeral,
+					},
+				})
+			} else if colorType == "invalidHexcode" {
+				err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "The hex code you entered is invalid. Remember that hex codes only use 0-9 and A-F as digits.",
+						Flags:   discordgo.MessageFlagsEphemeral,
+					},
+				})
+			}
+
+			if err != nil {
+				return
+			}
+		},
+		"owoify": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			var err error
+
+			options := i.ApplicationCommandData().Options
+
+			optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
+			for _, opt := range options {
+				optionMap[opt.Name] = opt
+			}
+
+			var originalString string
+			if option, ok := optionMap["string"]; ok {
+				// Option values must be type asserted from interface{}.
+				// Discordgo provides utility functions to make this simple.
+				originalString = strings.ToLower(option.StringValue())
+			}
+
+			var owoifiedString = `"` + strings.ReplaceAll(originalString, "o", "owo") + `"`
+
+			err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: owoifiedString,
+				},
+			})
+
+			if err != nil {
+				return
+			}
+		},
+		"userinfo": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			var (
+				err error
+
+				user        discordgo.User
+				color       int
+				avatarURL   string
+				bannerURL   string
+				uid         string
+				uname       string
+				discrim     string
+				bannervalue string
+				//userflags discordgo.UserFlags
+			)
+
+			options := i.ApplicationCommandData().Options
+
+			optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
+			for _, opt := range options {
+				optionMap[opt.Name] = opt
+			}
+
+			if option, ok := optionMap["user"]; ok {
+				user = *option.UserValue(s)
+				color = user.AccentColor
+				avatarURL = user.AvatarURL(strconv.Itoa(1024))
+				bannerURL = user.BannerURL(strconv.Itoa(1024))
+				uname = user.Username
+				discrim = user.Discriminator
+				//userflags = user.PublicFlags
+				uid = user.ID
+			}
+
+			if bannerURL == "" {
+				bannervalue = uname + " does not have a banner set."
+			} else {
+				bannervalue = "[Link](" + bannerURL + ")"
+			}
+
+			err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Embeds: []*discordgo.MessageEmbed{
+						{
+							Title: "Some info about " + uname,
+							Color: color,
+							Thumbnail: &discordgo.MessageEmbedThumbnail{
+								URL:    avatarURL,
+								Width:  128,
+								Height: 128,
+							},
+							Fields: []*discordgo.MessageEmbedField{
+								&discordgo.MessageEmbedField{
+									Name:   "Username",
+									Value:  uname,
+									Inline: true,
+								},
+								&discordgo.MessageEmbedField{
+									Name:   "Discriminator",
+									Value:  discrim,
+									Inline: true,
+								},
+								&discordgo.MessageEmbedField{
+									Name:   "User ID",
+									Value:  uid,
+									Inline: true,
+								},
+								&discordgo.MessageEmbedField{
+									Name:  "Avatar",
+									Value: `[Link](` + avatarURL + `)`,
+								},
+								&discordgo.MessageEmbedField{
+									Name:  "Banner",
+									Value: bannervalue,
+								},
+							},
+							Image: &discordgo.MessageEmbedImage{
+								URL:    bannerURL,
+								Width:  512,
+								Height: 512,
+							},
+						},
+					},
+				},
+			})
+
+			if err != nil {
+				return
+			}
+
 		},
 	}
 )
@@ -394,8 +745,21 @@ func main() {
 	log.Println("Graceful shutdown")
 }
 
-//func getRandomColor() {
-//	var randHex string = randomcolor.GetRandomColorInHex()
-//	var randRGB randomcolor.RGBColor = randomcolor.GetRandomColorInRgb()
-//	var randHSV randomcolor.HSVColor = randomcolor.GetRandomColorInHSV()
-//}
+func GetDevExcuse() *RandomDevExcuse {
+	resp, err := http.Get(("https://api.tabliss.io/v1/developer-excuses"))
+	if err != nil {
+		log.Fatalf("An error occured: %v", err)
+	}
+	var randomexcuse *RandomDevExcuse
+	err = json.NewDecoder(resp.Body).Decode(&randomexcuse)
+	if err != nil {
+		var invalid *RandomDevExcuse
+		return invalid
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+		}
+	}(resp.Body)
+	return randomexcuse
+}
