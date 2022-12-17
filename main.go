@@ -23,7 +23,6 @@ import (
 )
 
 // IDEAS
-// fun facts
 // generate bitmap from image
 // autogenerate css font change
 
@@ -156,20 +155,6 @@ var (
 				},
 			},
 		},
-		//{
-		//	applicationcommand: &discordgo.ApplicationCommand{
-		//		Name:        "coinflip",
-		//		Description: "Flips a coin.",
-		//		//Options: []*discordgo.ApplicationCommandOption{
-		//		//	{
-		//		//		Type: discordgo.ApplicationCommandOptionString,
-		//		//		Name: "coin",
-		//		//		Description: "The coin you wish to flip, defaults to EUR",
-		//		//		Required: true,
-		//		//	},
-		//		//},
-		//	},
-		//},
 		{
 			applicationcommand: &discordgo.ApplicationCommand{
 				Name:        "owoify",
@@ -207,6 +192,34 @@ var (
 						Type:        discordgo.ApplicationCommandOptionUser,
 						Name:        "user",
 						Description: "the user you want to get info of",
+						Required:    true,
+					},
+				},
+			},
+		},
+		{
+			applicationcommand: &discordgo.ApplicationCommand{
+				Name:        "bitshift",
+				Description: "tests bit shifting function",
+				Options: []*discordgo.ApplicationCommandOption{
+					{
+						Type:        discordgo.ApplicationCommandOptionInteger,
+						Name:        "amount",
+						Description: "amount of bits you want to shift by",
+						Required:    true,
+					},
+				},
+			},
+		},
+		{
+			applicationcommand: &discordgo.ApplicationCommand{
+				Name:        "testbadge",
+				Description: "returns what badges a selected user has, along with bitmask",
+				Options: []*discordgo.ApplicationCommandOption{
+					{
+						Type:        discordgo.ApplicationCommandOptionUser,
+						Name:        "user",
+						Description: "user",
 						Required:    true,
 					},
 				},
@@ -599,13 +612,16 @@ var (
 
 				user        discordgo.User
 				color       int
+				colorstring string
+				colortext   string
 				avatarURL   string
 				bannerURL   string
 				uid         string
 				uname       string
 				discrim     string
+				mention     string
 				bannervalue string
-				//userflags discordgo.UserFlags
+				userflags   discordgo.UserFlags
 			)
 
 			options := i.ApplicationCommandData().Options
@@ -622,8 +638,9 @@ var (
 				bannerURL = user.BannerURL(strconv.Itoa(1024))
 				uname = user.Username
 				discrim = user.Discriminator
-				//userflags = user.PublicFlags
+				userflags = user.PublicFlags
 				uid = user.ID
+				mention = user.Mention()
 			}
 
 			if bannerURL == "" {
@@ -631,6 +648,30 @@ var (
 			} else {
 				bannervalue = "[Link](" + bannerURL + ")"
 			}
+
+			// check and fix leading zeroes
+
+			colorstring = strconv.FormatInt(int64(color), 16)
+
+			if color < 1048576 && color > 65535 {
+				colortext = "#0" + colorstring
+			} else if color < 65536 && color > 4095 {
+				colortext = "#00" + colorstring
+			} else if color < 4096 && color > 255 {
+				colortext = "#000" + colorstring
+			} else if color < 256 && color > 15 {
+				colortext = "#0000" + colorstring
+			} else if color < 16 && color > 0 {
+				colortext = "#00000" + colorstring
+			} else if color == 0 {
+				colortext = "#000000"
+			} else {
+				colortext = "#" + colorstring
+			}
+
+			// badges ohno
+			fmt.Println(userflags)
+			fmt.Printf("%b", int64(userflags))
 
 			err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -656,17 +697,28 @@ var (
 									Inline: true,
 								},
 								&discordgo.MessageEmbedField{
-									Name:   "User ID",
-									Value:  uid,
+									Name:   "Mention",
+									Value:  mention,
 									Inline: true,
 								},
 								&discordgo.MessageEmbedField{
-									Name:  "Avatar",
-									Value: `[Link](` + avatarURL + `)`,
+									Name:  "User ID",
+									Value: uid,
 								},
 								&discordgo.MessageEmbedField{
-									Name:  "Banner",
-									Value: bannervalue,
+									Name:   "Accent Color",
+									Value:  colortext,
+									Inline: true,
+								},
+								&discordgo.MessageEmbedField{
+									Name:   "Avatar",
+									Value:  `[Link](` + avatarURL + `)`,
+									Inline: true,
+								},
+								&discordgo.MessageEmbedField{
+									Name:   "Banner",
+									Value:  bannervalue,
+									Inline: true,
 								},
 							},
 							Image: &discordgo.MessageEmbedImage{
@@ -683,6 +735,80 @@ var (
 				return
 			}
 
+		},
+		"bitshift": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			var err error
+			var amount int64
+			var shiftedValue uint64
+
+			options := i.ApplicationCommandData().Options
+
+			optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
+			for _, opt := range options {
+				optionMap[opt.Name] = opt
+			}
+			if option, ok := optionMap["amount"]; ok {
+				// Option values must be type asserted from interface{}.
+				// Discordgo provides utility functions to make this simple.
+				amount = option.IntValue()
+				shiftedValue = 1 << amount
+				fmt.Println(shiftedValue)
+			}
+
+			err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "`" + strconv.FormatUint(shiftedValue, 2) + "`",
+					Flags:   discordgo.MessageFlagsEphemeral,
+				},
+			})
+
+			if err != nil {
+				return
+			}
+		},
+		"testbadge": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			var (
+				err error
+				res error
+
+				user            discordgo.User
+				userflags       discordgo.UserFlags
+				userflagbitmask string
+				bitmaskSplit    []string
+			)
+
+			options := i.ApplicationCommandData().Options
+
+			optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
+			for _, opt := range options {
+				optionMap[opt.Name] = opt
+			}
+
+			if option, ok := optionMap["user"]; ok {
+				user = *option.UserValue(s)
+				userflags = user.PublicFlags
+			}
+
+			// BITMASK INTERPRETATION
+			// 1. turn bitmask int into string
+			// 2. split after each "1" bit
+			// 3. count zeroes before each "1" bit
+			// 4. map stuff to stuff
+			// 4 2.58 final chapter prologue 358/4 HD collectors edition featuring vergil from the devil may cry series DS. ???
+			// 5. profit
+
+			userflagbitmask = fmt.Sprintf("%b", userflags)                           // bitmask to string
+			bitmaskSplit = strings.SplitAfterN(fmt.Sprint(userflagbitmask), "1", -1) // split after each "1", return as many as there are... this took three hours
+			fmt.Println("")
+			fmt.Println(userflags)
+			fmt.Println(int64(userflags))
+			fmt.Println(userflagbitmask)
+			fmt.Println(strings.Join(bitmaskSplit, ","))
+
+			if err != nil || res != nil {
+				return
+			}
 		},
 	}
 )
