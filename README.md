@@ -16,3 +16,7 @@ My Discord has a channel dedicated to me ranting about it too.
 - [Deepfried Chips](https://github.com/Deepfried-Chips) for helping me get this thing off the ground in the first place
 - [Lucas Beyer](https://github.com/lucasb-eyer) for his library [Colorful](https://github.com/lucasb-eyer/go-colorful)
 - [bwmarrin](https://github.com/bwmarrin) for making [DiscordGo](https://github.com/bwmarrin/discordgo) and by extension making this entire thing possible.
+###
+###
+*damn, aegis actually writing a readme for once? yeah im freaked out too*
+
