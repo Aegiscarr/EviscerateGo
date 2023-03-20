@@ -1,4 +1,13 @@
 *.ignore
 .env
 *.exe
-token.txt
+*token.txt
+audio
+.dockerignore
+Dockerfile
+docker-compose.*
+*.png
+*.dca
+accentcol.go
+db
+*.exe~

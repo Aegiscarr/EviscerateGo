@@ -1,34 +1,57 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"image"
 	"io"
 	"log"
+	"math"
 	"math/rand"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
+	//_ "image/draw"
 	_ "image/gif"
-	_ "image/jpeg"
+	"image/jpeg"
+	"image/png"
 	_ "image/png"
+	_ "net/url"
 
+	"github.com/EdlinOrg/prominentcolor"
 	"github.com/bwmarrin/discordgo"
+	"github.com/cavaliergopher/grab/v3"
+	"github.com/disintegration/gift"
+	htgotts "github.com/hegedustibor/htgo-tts"
+	handlers "github.com/hegedustibor/htgo-tts/handlers"
+	voices "github.com/hegedustibor/htgo-tts/voices"
+	"github.com/jonas747/dca"
 	"github.com/lucasb-eyer/go-colorful"
 )
 
 // IDEAS
-// generate bitmap from image
-// autogenerate css font change
+// gpt integration ohdeargod (agony while keeping 24/7)
+// useless web
+// randomproto
+// server stats (meh, dont see the point)
+// polls (needs db'ing)
+// reminders (needs db'ing)
+// mod stuffs
+// customizable interaction accent color
 
 // BotToken Flags
 var (
-	BotToken = flag.String("token", "", "Bot token")
+	BotToken          = flag.String("token", "", "Bot token")
+	CumulonimbusToken = flag.String("cumulonimbus-token", "", "Cumulonimbus Token")
+	RapidSzToken      = flag.String("rapid-sz-token", "", "RapidSz Token")
 )
 
 var (
@@ -36,7 +59,13 @@ var (
 	RemoveCommands = flag.Bool("rmcmd", true, "Remove all commands after shutdowning or not")
 )
 
+var uploadClient http.Client
+
+//dw := imagick.NewDrawingWand()
+
 var s *discordgo.Session
+var vc *discordgo.VoiceConnection
+var inVC bool
 
 type ExtendedCommand struct {
 	applicationcommand *discordgo.ApplicationCommand
@@ -58,6 +87,20 @@ func init() {
 	s, err = discordgo.New("Bot " + *BotToken)
 	if err != nil {
 		log.Fatalf("Invalid bot parameters: %v", err)
+	}
+	*CumulonimbusToken = ReadTokenFromFile("uploader-token.txt")
+	if *CumulonimbusToken != "" {
+		log.Println("Uploader token read from file")
+	} else {
+		log.Println("Token not read from file, fetching from env")
+		*BotToken = os.Getenv("UPLOADER_TOKEN")
+	}
+	*RapidSzToken = ReadTokenFromFile("rapid-sz-token.txt")
+	if *RapidSzToken != "" {
+		log.Println("RapidAPI token read from file")
+	} else {
+		log.Println("Token not read from file, fetching from env")
+		*RapidSzToken = os.Getenv("RAPID_SZ_TOKEN")
 	}
 }
 
@@ -199,13 +242,41 @@ var (
 		},
 		{
 			applicationcommand: &discordgo.ApplicationCommand{
-				Name:        "bitshift",
-				Description: "tests bit shifting function",
+				Name:        "rps",
+				Description: "play rock paper scissors with the bot",
 				Options: []*discordgo.ApplicationCommandOption{
 					{
-						Type:        discordgo.ApplicationCommandOptionInteger,
-						Name:        "amount",
-						Description: "amount of bits you want to shift by",
+						Type:        discordgo.ApplicationCommandOptionString,
+						Name:        "choice",
+						Description: "your move",
+						Required:    true,
+						Choices: []*discordgo.ApplicationCommandOptionChoice{
+							{
+								Name:  "rock",
+								Value: "rock",
+							},
+							{
+								Name:  "paper",
+								Value: "paper",
+							},
+							{
+								Name:  "scissors",
+								Value: "scissors",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			applicationcommand: &discordgo.ApplicationCommand{
+				Name:        "askevi",
+				Description: "ask a question and get an answer, magic 8-ball style",
+				Options: []*discordgo.ApplicationCommandOption{
+					{
+						Type:        discordgo.ApplicationCommandOptionString,
+						Name:        "question",
+						Description: "the question you want to ask me",
 						Required:    true,
 					},
 				},
@@ -213,19 +284,159 @@ var (
 		},
 		{
 			applicationcommand: &discordgo.ApplicationCommand{
-				Name:        "testbadge",
-				Description: "returns what badges a selected user has, along with bitmask",
+				Name:        "magick",
+				Description: "mess with an image through imagemagick",
 				Options: []*discordgo.ApplicationCommandOption{
 					{
-						Type:        discordgo.ApplicationCommandOptionUser,
-						Name:        "user",
-						Description: "user",
+						Type:        discordgo.ApplicationCommandOptionString,
+						Name:        "url",
+						Description: "The image you want to blur",
+						Required:    true,
+					},
+					{
+						Type:        discordgo.ApplicationCommandOptionString,
+						Name:        "method",
+						Description: "modification you want to make",
+						Required:    true,
+						Choices: []*discordgo.ApplicationCommandOptionChoice{
+							{
+								Name:  "blur (intensity in px)",
+								Value: "blur",
+							},
+							{
+								Name:  "contrast (intensity in %, between -100 and 100)",
+								Value: "contrast",
+							},
+							{
+								Name:  "saturation (intensity in %, between -100 and 500)",
+								Value: "saturation",
+							},
+							{
+								Name:  "sobel (intensity not used)",
+								Value: "sobel",
+							},
+							{
+								Name:  "hue shift (intensity in degrees)",
+								Value: "hueshift",
+							},
+							{
+								Name:  "invert (intensity not used)",
+								Value: "invert",
+							},
+							{
+								Name:  "pixelate (intensity in px)",
+								Value: "pixelate",
+							},
+							{
+								Name:  "sepia (intensity in %, between 0 and 100)",
+								Value: "sepia",
+							},
+							{
+								Name:  "brightness (intensity in %, between -100 and 100)",
+								Value: "brightness",
+							},
+						},
+					},
+					{
+						Type:        discordgo.ApplicationCommandOptionNumber,
+						Name:        "intensity",
+						Description: "Value of whatever filter you're using, highly context-sensitive",
+					},
+				},
+			},
+		},
+		// music cmd's, oh feck
+		{
+			applicationcommand: &discordgo.ApplicationCommand{
+				Name:        "play",
+				Description: "play a song",
+				Options: []*discordgo.ApplicationCommandOption{
+					{
+						Type:        discordgo.ApplicationCommandOptionString,
+						Name:        "url",
+						Description: "the video you want to play",
 						Required:    true,
 					},
 				},
 			},
 		},
+		{
+			applicationcommand: &discordgo.ApplicationCommand{
+				Name:        "join",
+				Description: "joins your voice chat",
+			},
+		},
+		{
+			applicationcommand: &discordgo.ApplicationCommand{
+				Name:        "leave",
+				Description: "disconnects from the voice channel",
+			},
+		},
+		{
+			applicationcommand: &discordgo.ApplicationCommand{
+				Name:        "songinfo",
+				Description: "Returns song info from the Spotify API",
+				Options: []*discordgo.ApplicationCommandOption{
+					{
+						Type:        discordgo.ApplicationCommandOptionString,
+						Name:        "query",
+						Description: "search query",
+						Required:    true,
+					},
+					//					{
+					//						Type:        discordgo.ApplicationCommandOptionString,
+					//						Name:        "type",
+					//						Description: "type of search, defaults to all",
+					//						Choices: []*discordgo.ApplicationCommandOptionChoice{
+					//							{
+					//								Name:  "multi",
+					//								Value: "multi",
+					//							},
+					//							{
+					//								Name:  "albums",
+					//								Value: "albums",
+					//							},
+					//							{
+					//								Name:  "artists",
+					//								Value: "artists",
+					//							},
+					//							{
+					//								Name:  "tracks",
+					//								Value: "tracks",
+					//							},
+				},
+			},
+		},
+		{
+			applicationcommand: &discordgo.ApplicationCommand{
+				Name:        "lmgtfy",
+				Description: "Let me google that for you!",
+				Options: []*discordgo.ApplicationCommandOption{
+					{
+						Type:        discordgo.ApplicationCommandOptionString,
+						Name:        "query",
+						Description: "search query",
+						Required:    true,
+					},
+				},
+			},
+		},
+		//{
+		//	applicationcommand: &discordgo.ApplicationCommand{
+		//		Name:        "settings accentcolor",
+		//		Description: "Sets the accent color for commands without variable colors",
+		//		Options: []*discordgo.ApplicationCommandOption{
+		//			{
+		//				Type:        discordgo.ApplicationCommandOptionString,
+		//				Name:        "hexcode",
+		//				Description: "hexcode of the accent color",
+		//				Required:    true,
+		//			},
+		//		},
+		//	},
+		//},
 	}
+
 	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
 		"ping": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -271,6 +482,9 @@ var (
 				if err != nil {
 					return
 				}
+
+				//fmt.Sprintf("Echo sent to %v in %v: %v by %v#%v", channelobj.Name, channelobj.GuildID, messagecontent, i.User.Username, i.User.Discriminator)
+				ChannelLog(fmt.Sprintf("Echo sent to %v in %v: %v by %v#%v", channelobj.Name, channelobj.GuildID, messagecontent, i.Member.User.Username, i.Member.User.Discriminator))
 
 				err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -327,11 +541,11 @@ var (
 							Color:       0x8c1bb1,
 							Description: "On this server we cater to people who experience plurality (or multiplicity) \nBots like PluralKit help these people express themselves easier. \n \nDue to discord limitations, these people show up with the [BOT] tag, but rest assured they are not bots.",
 							Fields: []*discordgo.MessageEmbedField{
-								&discordgo.MessageEmbedField{
+								{
 									Name:  "A brief explanation of plurality",
 									Value: "There's a lot more to it than what I'm showing here, but essentially plurality is the existence of multiple self-aware entities (they don't necessarily have to be people) in one brain. It's like having roommates inside your head.",
 								},
-								&discordgo.MessageEmbedField{
+								{
 									Name:  "Better explanations and more resources",
 									Value: `[MoreThanOne](https://morethanone.info/)`,
 								},
@@ -381,15 +595,15 @@ var (
 								Height: 100,
 							},
 							Fields: []*discordgo.MessageEmbedField{
-								&discordgo.MessageEmbedField{
+								{
 									Name:  "Hex",
 									Value: randomcolorRGB.Hex(),
 								},
-								&discordgo.MessageEmbedField{
+								{
 									Name:  "RGB",
 									Value: "[" + randomRedReadable + ", " + randomGreenReadable + ", " + randomBlueReadable + "]",
 								},
-								&discordgo.MessageEmbedField{
+								{
 									Name:  "HSV",
 									Value: randomHueReadable + "°, " + randomSatReadable + "%, " + randomValReadable + "%",
 								},
@@ -521,15 +735,15 @@ var (
 									Height: 100,
 								},
 								Fields: []*discordgo.MessageEmbedField{
-									&discordgo.MessageEmbedField{
+									{
 										Name:  "Hex",
 										Value: colorfulColor.Hex(),
 									},
-									&discordgo.MessageEmbedField{
+									{
 										Name:  "RGB",
 										Value: "[" + fmt.Sprintf("%.0f", colorfulColor.R*255) + ", " + fmt.Sprintf("%.0f", colorfulColor.G*255) + ", " + fmt.Sprintf("%.0f", colorfulColor.B*255) + "]",
 									},
-									&discordgo.MessageEmbedField{
+									{
 										Name:  "HSV",
 										Value: fmt.Sprintf("%.0f", HueStr) + "°, " + fmt.Sprintf("%.0f", SatStr*100) + "%, " + fmt.Sprintf("%.0f", ValStr*100) + "%",
 									},
@@ -621,7 +835,16 @@ var (
 				discrim     string
 				mention     string
 				bannervalue string
-				userflags   discordgo.UserFlags
+				//userflags       discordgo.UserFlags
+				//userflagbitmask string
+				//stringLength    int
+				//charIndex       int
+				//badgeList       []string
+				//badgeCount      int
+				//badgeString     string
+				//bitmaskSplit    []string
+				//bitmaskSeg      []int
+				//badgeNum        int
 			)
 
 			options := i.ApplicationCommandData().Options
@@ -638,7 +861,7 @@ var (
 				bannerURL = user.BannerURL(strconv.Itoa(1024))
 				uname = user.Username
 				discrim = user.Discriminator
-				userflags = user.PublicFlags
+				//userflags = user.PublicFlags
 				uid = user.ID
 				mention = user.Mention()
 			}
@@ -670,8 +893,62 @@ var (
 			}
 
 			// badges ohno
-			fmt.Println(userflags)
-			fmt.Printf("%b", int64(userflags))
+			//userflagbitmask = fmt.Sprintf("%b", userflags) // bitmask to string
+			//badgeCount = strings.Count(userflagbitmask, "1")
+			//stringLength = len(userflagbitmask)
+			//bitmaskSplit = strings.SplitAfterN(fmt.Sprint(userflagbitmask), "1", -1) // split after each "1", return as many as there are... this took three hours
+			//ChannelLog(fmt.Sprintf(uname)
+			//ChannelLog(fmt.Sprintf(userflagbitmask)
+			//ChannelLog(fmt.Sprintf("length: " + strconv.FormatInt(int64(stringLength), 10))
+			//badgeNum = 1
+			//for badgeNum < badgeCount {
+			//	for i, s := range bitmaskSplit {
+			//		ChannelLog(fmt.Sprintf(i, s)
+			//		bitmaskSeg = append(bitmaskSeg, strings.Count(s, "0"))
+			//		badgeIndexReverse := [23]string{"<:activedev:1054431966960832542>", "<:activedev:1054431966960832542>", "nul", "nul", "nul", "<:modalumni:1054431972996427777>", "<:verifieddev:1054431968160399381>", "nul", "<:bughunter2:1054431970911862914>", "nul", "nul", "nul", "nul", "<:earlysupporter:1054431972002377728>", "<:balance:1054431978314797136>", "<:brilliance:1054432130391887952>", "<:bravery:1054432128856756224>", "nul", "nul", "<:bughunter1:1054431969674526781>", "<:hypesquad:1054431981255012483>", "<:partner:1054431975945011250>", "<:staff:1054432180803227740>"}
+			//		badgeIndex := [23]string{"<:staff:1054432180803227740>", "<:partner:1054431975945011250>", "<:hypesquad:1054431981255012483>", "<:bughunter1:1054431969674526781>", "nul", "nul", "<:bravery:1054432128856756224>", "<:brilliance:1054432130391887952>", "<:balance:1054431978314797136>", "<:earlysupporter:1054431972002377728>", "nul", "nul", "nul", "nul", "<:bughunter2:1054431970911862914>", "nul", "nul", "<:verifieddev:1054431968160399381>", "<:modalumni:1054431972996427777>", "nul", "nul", "nul", "<:activedev:1054431966960832542>"}
+			//		ChannelLog(fmt.Sprintf(bitmaskSeg)
+			//		ChannelLog(fmt.Sprintf(bitmaskSeg[len(bitmaskSeg)-1])
+			//		iMax := bitmaskSplit[len(bitmaskSplit)-1]
+			//		if i == 0 {
+			//			if stringLength == 23 {
+			//				ChannelLog(fmt.Sprintf(badgeIndexReverse[bitmaskSeg[len(bitmaskSeg)-1]])
+			//				if badgeIndexReverse[bitmaskSeg[len(bitmaskSeg)-1]] != "nul" {
+			//					badgeList = append(badgeList, badgeIndexReverse[bitmaskSeg[len(bitmaskSeg)-1]])
+			//				} else {
+			//					badgeList = badgeList
+			//				}
+			//			}
+			//		} else if i > 0 && strconv.FormatInt(int64(i), 10) < iMax {
+			//			ChannelLog(fmt.Sprintf(badgeIndexReverse[bitmaskSeg[len(bitmaskSeg)-1]+1])
+			//			if badgeIndexReverse[bitmaskSeg[len(bitmaskSeg)-1]+1] != "nul" {
+			//				badgeList = append(badgeList, badgeIndexReverse[bitmaskSeg[len(bitmaskSeg)-1]])
+			//				charIndex = charIndex + bitmaskSeg[len(bitmaskSeg)-1]
+			//			} else {
+			//				badgeList = badgeList
+			//			}
+			//		} else {
+			//			ChannelLog(fmt.Sprintf(badgeIndex[bitmaskSeg[len(bitmaskSeg)-1]])
+			//			if badgeIndex[bitmaskSeg[len(bitmaskSeg)-1]] != "nul" {
+			//				badgeList = append(badgeList, badgeIndex[bitmaskSeg[len(bitmaskSeg)-1]])
+			//				charIndex = charIndex + bitmaskSeg[len(bitmaskSeg)-1]
+			//			} else {
+			//				badgeList = badgeList
+			//			}
+			//		}
+			//		charIndex = charIndex + bitmaskSeg[len(bitmaskSeg)-1]
+			//		ChannelLog(fmt.Sprintf("charIndex " + strconv.FormatInt(int64(charIndex), 10))
+			//	}
+			//
+			//	ChannelLog(fmt.Sprintf(badgeList)
+			//	ChannelLog(fmt.Sprintf(badgeString)
+			//
+			//	badgeString = strings.Join(badgeList, " ")
+			//	if badgeString == "" {
+			//		badgeString = uname + " does not have any badges."
+			//	}
+			//	badgeNum += 1
+			//}
 
 			err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -686,36 +963,47 @@ var (
 								Height: 128,
 							},
 							Fields: []*discordgo.MessageEmbedField{
-								&discordgo.MessageEmbedField{
+								{
 									Name:   "Username",
 									Value:  uname,
 									Inline: true,
 								},
-								&discordgo.MessageEmbedField{
+								{
 									Name:   "Discriminator",
 									Value:  discrim,
 									Inline: true,
 								},
-								&discordgo.MessageEmbedField{
+								{
 									Name:   "Mention",
 									Value:  mention,
 									Inline: true,
 								},
-								&discordgo.MessageEmbedField{
-									Name:  "User ID",
-									Value: uid,
+								{
+									Name:   "User ID",
+									Value:  uid,
+									Inline: true,
 								},
-								&discordgo.MessageEmbedField{
+								//{
+								//	Name:   "Badges",
+								//	Value:  badgeString,
+								//	Inline: true,
+								//},
+								//{
+								//	Name:   "⠀",
+								//	Value:  "⠀",
+								//	Inline: true,
+								//},
+								{
 									Name:   "Accent Color",
 									Value:  colortext,
 									Inline: true,
 								},
-								&discordgo.MessageEmbedField{
+								{
 									Name:   "Avatar",
 									Value:  `[Link](` + avatarURL + `)`,
 									Inline: true,
 								},
-								&discordgo.MessageEmbedField{
+								{
 									Name:   "Banner",
 									Value:  bannervalue,
 									Inline: true,
@@ -736,10 +1024,21 @@ var (
 			}
 
 		},
-		"bitshift": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			var err error
-			var amount int64
-			var shiftedValue uint64
+		"rps": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			rand.Seed(time.Now().UnixNano())
+			var (
+				err error
+
+				botChoiceID int = rand.Intn(3)
+				botChoice   string
+				choice      string
+				resultID    int // 0 = user win, 1 = bot win, 2 = tie
+			)
+
+			choices := [3]string{"rock", "paper", "scissors"}
+
+			//responses := [20]string{`Luck really isn't on your side today, huh? It's a 1.`, `A 2. Couldn't have been much worse.`, `It's a tree!- Oh, wait. A 3.`, `A four-se. Of course. That didn't work, did it?`, `A 5. Nothing funny here.`, `A 6. The devil, anyone?`, `Lucky number 7! Now can you get two more?`, `8, not bad.`, `Just under halfway up. A 9`, `A 10! Halfway up the scale!`, `11. Decent.`, `12. Could have been much worse. Could've also been better, though.`, `13. Feelin' lucky?`, `Aand it's come up 14!`, `15! Getting up there!`, `16, solid.`, `17. Rolling real high now, aren't you?`, `18! You're old eno- wait this isn't a birthday.`, `19! So CLOSE!`, `NAT 20 BAYBEE!`}
+			result := [3]string{"You win", "I win", "It's a tie"}
 
 			options := i.ApplicationCommandData().Options
 
@@ -747,18 +1046,53 @@ var (
 			for _, opt := range options {
 				optionMap[opt.Name] = opt
 			}
-			if option, ok := optionMap["amount"]; ok {
-				// Option values must be type asserted from interface{}.
-				// Discordgo provides utility functions to make this simple.
-				amount = option.IntValue()
-				shiftedValue = 1 << amount
-				fmt.Println(shiftedValue)
+
+			if option, ok := optionMap["choice"]; ok {
+				choice = strings.ToLower(option.StringValue())
+			}
+
+			if choice != "rock" && choice != "paper" && choice != "scissors" {
+				err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "invalid choice",
+						Flags:   discordgo.MessageFlagsEphemeral,
+					},
+				})
+			}
+
+			botChoice = choices[botChoiceID]
+
+			if choice == "rock" {
+				if botChoice == "rock" {
+					resultID = 2
+				} else if botChoice == "paper" {
+					resultID = 1
+				} else {
+					resultID = 0
+				}
+			} else if choice == "paper" {
+				if botChoice == "rock" {
+					resultID = 0
+				} else if botChoice == "paper" {
+					resultID = 2
+				} else {
+					resultID = 1
+				}
+			} else {
+				if botChoice == "rock" {
+					resultID = 1
+				} else if botChoice == "paper" {
+					resultID = 0
+				} else {
+					resultID = 2
+				}
 			}
 
 			err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
-					Content: "`" + strconv.FormatUint(shiftedValue, 2) + "`",
+					Content: result[resultID] + " // My pick: " + botChoice,
 					Flags:   discordgo.MessageFlagsEphemeral,
 				},
 			})
@@ -767,15 +1101,483 @@ var (
 				return
 			}
 		},
-		"testbadge": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		"askevi": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			rand.Seed(time.Now().UnixNano())
+			var err error
+			var color int
+			responseID := rand.Intn(19)
+			responses := [20]string{"It is certain.", "It is decidedly so.", "Without a doubt.", "Yes, definitely.", "You may rely on it.", "As I see it, yes.", "Most likely.", "Outlook good.", "Yes.", "Signs point to yes", "Reply hazy, try again.", "Ask again later.", "Better not tell you now.", "Cannot predict now.", "Concentrate and ask again.", "Don't count on it.", "My reply is no.", "My sources say no.", "Outlook not so good.", "Very doubtful."}
+			if responseID < 10 {
+				color = 0x00ae00 //affirmative
+			} else if responseID > 9 && responseID < 14 {
+				color = 0xfcb103 //non-commital
+			} else {
+				color = 0xff0000 //negative
+			}
+
+			options := i.ApplicationCommandData().Options
+
+			optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
+			for _, opt := range options {
+				optionMap[opt.Name] = opt
+			}
+
+			if option, ok := optionMap["question"]; ok {
+				// Option values must be type asserted from interface{}.
+				// Discordgo provides utility functions to make this simple.
+				ChannelLog(fmt.Sprintf(option.StringValue()))
+			}
+
+			err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Embeds: []*discordgo.MessageEmbed{
+						{
+							Title: responses[responseID],
+							Color: color,
+							Footer: &discordgo.MessageEmbedFooter{
+								Text: "Disclaimer: This answer is based on absolutely nothing.",
+							},
+						},
+					},
+				},
+			})
+
+			if err != nil {
+				return
+			}
+		},
+		"magick": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			var (
 				err error
-				res error
 
-				user            discordgo.User
-				userflags       discordgo.UserFlags
-				userflagbitmask string
-				bitmaskSplit    []string
+				imgUrl         string
+				method         string
+				dst            *image.RGBA
+				src            image.Image
+				fEdit          *os.File
+				execFolder     string
+				execPath       string
+				imagePath      string
+				uploadResponse CumulonimbusResponse
+				colorfulCol    colorful.Color
+				intensity      float32
+			)
+
+			execPath, err = os.Executable()
+			execFolder = filepath.Dir(execPath)
+
+			options := i.ApplicationCommandData().Options
+
+			optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
+			for _, opt := range options {
+				optionMap[opt.Name] = opt
+			}
+
+			if option, ok := optionMap["url"]; ok {
+				imgUrl = option.StringValue()
+				ChannelLog(fmt.Sprintf(imgUrl))
+			}
+			if opt, ok := optionMap["method"]; ok {
+				method = opt.StringValue()
+				ChannelLog(fmt.Sprintf(method))
+			}
+			if opt2, ok := optionMap["intensity"]; ok {
+				intensity = float32(opt2.FloatValue())
+			}
+			resp, err := grab.Get(".", imgUrl)
+			if err != nil {
+				log.Fatal(err)
+			}
+			ChannelLog(fmt.Sprintf("Download saved to %v ", resp.Filename))
+			file := resp.Filename
+			openFile, err := os.Open(file)
+			src, err = png.Decode(openFile)
+
+			if method == "blur" {
+				if intensity == 0 {
+					intensity = 1.5
+				}
+
+				if intensity < 0 {
+					err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "what are you trying to do, break me!? (intensity should be more than 0)",
+							Flags:   discordgo.MessageFlagsEphemeral,
+						},
+					})
+				}
+				g := gift.New(
+					gift.GaussianBlur(intensity),
+				)
+				dst = image.NewRGBA(g.Bounds(src.Bounds()))
+				g.Draw(dst, src)
+			}
+
+			if method == "contrast" {
+				if intensity == 0 {
+					intensity = 50
+				}
+
+				if intensity < -100 || intensity > 100 {
+					err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "what are you trying to do, break me!? (intensity should be between -100 and 100)",
+							Flags:   discordgo.MessageFlagsEphemeral,
+						},
+					})
+				}
+
+				g := gift.New(
+					gift.Contrast(intensity),
+				)
+				dst = image.NewRGBA(g.Bounds(src.Bounds()))
+				g.Draw(dst, src)
+			}
+
+			if method == "saturation" {
+				if intensity == 0 {
+					intensity = 50
+				}
+
+				if intensity < -100 || intensity > 500 {
+					err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "what are you trying to do, break me!? (intensity should be between -100 and 500)",
+							Flags:   discordgo.MessageFlagsEphemeral,
+						},
+					})
+				}
+
+				g := gift.New(
+					gift.Saturation(intensity),
+				)
+				dst = image.NewRGBA(g.Bounds(src.Bounds()))
+				g.Draw(dst, src)
+			}
+
+			if method == "sobel" {
+				g := gift.New(
+					gift.Sobel(),
+				)
+				dst = image.NewRGBA(g.Bounds(src.Bounds()))
+				g.Draw(dst, src)
+			}
+
+			if method == "hueshift" {
+				if intensity == 0 {
+					intensity = 45
+				}
+
+				g := gift.New(
+					gift.Hue(intensity),
+				)
+				dst = image.NewRGBA(g.Bounds(src.Bounds()))
+				g.Draw(dst, src)
+			}
+
+			if method == "invert" {
+				g := gift.New(
+					gift.Invert(),
+				)
+				dst = image.NewRGBA(g.Bounds(src.Bounds()))
+				g.Draw(dst, src)
+			}
+
+			if method == "pixelate" {
+				intensity = float32(math.Round(float64(intensity)))
+				if intensity == 0 {
+					intensity = 5
+				}
+
+				g := gift.New(
+					gift.Pixelate(int(intensity)),
+				)
+				dst = image.NewRGBA(g.Bounds(src.Bounds()))
+				g.Draw(dst, src)
+			}
+
+			if method == "sepia" {
+				if intensity == 0 {
+					intensity = 50
+				}
+
+				if intensity < 0 {
+					err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "what are you trying to do, break me!? (intensity should be between 0 and 100)",
+							Flags:   discordgo.MessageFlagsEphemeral,
+						},
+					})
+				}
+
+				g := gift.New(
+					gift.Sepia(intensity),
+				)
+				dst = image.NewRGBA(g.Bounds(src.Bounds()))
+				g.Draw(dst, src)
+			}
+
+			if method == "brightness" {
+				if intensity == 0 {
+					intensity = 25
+				}
+
+				if intensity < -100 || intensity > 100 {
+					err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "what are you trying to do, break me!? (intensity should be between -100 and 100)",
+							Flags:   discordgo.MessageFlagsEphemeral,
+						},
+					})
+				}
+
+				g := gift.New(
+					gift.Brightness(intensity),
+				)
+				dst = image.NewRGBA(g.Bounds(src.Bounds()))
+				g.Draw(dst, src)
+
+			}
+
+			avgcol, err := prominentcolor.Kmeans(dst)
+			fmt.Printf("%v %v %v", avgcol[0].Color.R, avgcol[0].Color.G, avgcol[0].Color.B)
+
+			// COLOR CONVERSION YAAAAAAAAAAAAAAAAAAAAAAAAA
+			avgColRInt, err := strconv.ParseInt(strconv.FormatUint(uint64(avgcol[0].Color.R), 10), 10, 64)
+			avgColR, err := strconv.ParseFloat(strconv.Itoa(int(avgColRInt)), 64)
+
+			avgColGInt, err := strconv.ParseInt(strconv.FormatUint(uint64(avgcol[0].Color.G), 10), 10, 64)
+			avgColG, err := strconv.ParseFloat(strconv.Itoa(int(avgColGInt)), 64)
+
+			avgColBInt, err := strconv.ParseInt(strconv.FormatUint(uint64(avgcol[0].Color.B), 10), 10, 64)
+			avgColB, err := strconv.ParseFloat(strconv.Itoa(int(avgColBInt)), 64)
+
+			avgColRDiv := avgColR / 255
+			avgColGDiv := avgColG / 255
+			avgColBDiv := avgColB / 255
+
+			colorfulCol.R = avgColRDiv
+			colorfulCol.G = avgColGDiv
+			colorfulCol.B = avgColBDiv
+
+			fEdit, err = os.Create("image.png")
+			if err != nil {
+				ChannelLog(fmt.Sprintf("error while creating image file: %v", err))
+			}
+			png.Encode(fEdit, dst)
+
+			hexcol, err := strconv.ParseInt(strings.ReplaceAll(colorfulCol.Hex(), "#", ""), 16, 64)
+
+			imagePath = execFolder + "\\image.png"
+			ChannelLog(fmt.Sprintf(imagePath))
+
+			_, err = os.Open(imagePath)
+
+			form := new(bytes.Buffer)
+			writer := multipart.NewWriter(form)
+			fw, err := writer.CreateFormFile("file", filepath.Base("Cumulonimbus.svg"))
+			if err != nil {
+				log.Fatal(err)
+			}
+			fd, err := os.Open("image.png")
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer fd.Close()
+			_, err = io.Copy(fw, fd)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			writer.Close()
+
+			client := &http.Client{}
+			req, err := http.NewRequest("POST", "https://alekeagle.me/api/upload", form)
+			if err != nil {
+				log.Fatal(err)
+			}
+			req.Header.Set("Authorization", *CumulonimbusToken)
+			req.Header.Set("Content-Type", writer.FormDataContentType())
+			httpresp, err := client.Do(req)
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer httpresp.Body.Close()
+			bodyText, err := io.ReadAll(httpresp.Body)
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Printf("%s\n", bodyText)
+			err = json.Unmarshal(bodyText, &uploadResponse)
+
+			if err != nil {
+				return
+			}
+
+			err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Embeds: []*discordgo.MessageEmbed{
+						{
+							Title: "Here's the edited image!",
+							Color: int(hexcol),
+							Image: &discordgo.MessageEmbedImage{
+								URL:    uploadResponse.URL,
+								Width:  1024,
+								Height: 1024,
+							},
+							Description: "Upload powered by [Cumulonimbus](https://alekeagle.me)",
+						},
+					},
+				},
+			},
+			)
+
+			os.Remove(file)
+			os.Remove(imagePath)
+			if err != nil {
+				return
+			}
+
+		},
+		"join": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			var (
+				err      error
+				vcID     string
+				guild    *discordgo.Guild = new(discordgo.Guild)
+				guildID  string
+				msg      string
+				msgID    string
+				msgOldID string
+				file     string
+			)
+
+			guild, err = s.State.Guild(i.GuildID)
+			if err != nil {
+				ChannelLog(fmt.Sprintf("An error occurred during state loading: %v", err))
+			}
+			guildID = guild.ID
+			ChannelLog(fmt.Sprintf(guildID))
+
+			for _, voiceState := range guild.VoiceStates {
+				if voiceState.UserID == i.Member.User.ID {
+					vcID = voiceState.ChannelID
+				}
+			}
+
+			vc, err = s.ChannelVoiceJoin(guildID, vcID, false, true)
+			inVC = true
+
+			err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "Joined your voice channel!",
+					Flags:   discordgo.MessageFlagsEphemeral,
+				},
+			})
+
+			msgOldID = ""
+
+			for vc != nil {
+				latestmessage, err := s.ChannelMessages("1063016193771982858", 1, "", "", "")
+				speech := htgotts.Speech{Folder: "audio", Language: voices.English, Handler: &handlers.Native{}}
+				msgID = latestmessage[0].ID
+				ChannelLog(fmt.Sprintf(msgID))
+
+				if msgID != msgOldID {
+
+					msg = latestmessage[0].Content
+					file, err = speech.CreateSpeechFile(msg, "tts")
+					msgOldID = msgID
+					ChannelLog(fmt.Sprintf(file))
+					vc.Speaking(true)
+					encodeSession, err := dca.EncodeFile(file, dca.StdEncodeOptions)
+					defer encodeSession.Cleanup()
+					output, err := os.Create("output.dca")
+					if err != nil {
+						return
+					}
+
+					decoder := dca.NewDecoder(output)
+
+					for {
+						frame, err := decoder.OpusFrame()
+						if err != nil {
+							if err != io.EOF {
+								// Handle the error
+							}
+
+							break
+						}
+
+						// Do something with the frame, in this example were sending it to discord
+						select {
+						case vc.OpusSend <- frame:
+						case <-time.After(time.Second):
+							// We haven't been able to send a frame in a second, assume the connection is borked
+							return
+						}
+					}
+				}
+
+				if err != nil {
+					ChannelLog(fmt.Sprintf("An error occurred trying to send OPUS audio data: %v", err))
+				}
+			}
+
+			if err != nil {
+				return
+			}
+		},
+		"leave": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+
+			if vc != nil {
+				vc.Disconnect()
+				vc = nil
+				err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Left your voice channel!",
+						Flags:   discordgo.MessageFlagsEphemeral,
+					},
+				})
+
+				if err != nil {
+					return
+				}
+			} else {
+				err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Not in a voice channel",
+						Flags:   discordgo.MessageFlagsEphemeral,
+					},
+				})
+
+				if err != nil {
+					return
+				}
+			}
+
+		},
+		"songinfo": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			var (
+				err          error
+				query        string
+				parsedQuery  string
+				songdata     *RapidSzResponse
+				sDuration    int64
+				t            time.Time
+				colorfulCol  colorful.Color
+				artistString string
+				// Song info
+
 			)
 
 			options := i.ApplicationCommandData().Options
@@ -785,31 +1587,196 @@ var (
 				optionMap[opt.Name] = opt
 			}
 
-			if option, ok := optionMap["user"]; ok {
-				user = *option.UserValue(s)
-				userflags = user.PublicFlags
+			if option, ok := optionMap["query"]; ok {
+				// Option values must be type asserted from interface{}.
+				// Discordgo provides utility functions to make this simple.
+				query = option.StringValue()
+				parsedQuery = strings.ReplaceAll(query, " ", "%20")
+			}
+			//if opt, ok := optionMap["type"]; ok {
+			//	queryType = opt.StringValue()
+			//}
+
+			songdata = GetRapidAPICall(parsedQuery, "tracks")
+
+			if songdata.Tracks.TotalCount == 0 {
+				err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "No results",
+						Flags:   discordgo.MessageFlagsEphemeral,
+					},
+				})
+			} else {
+				parsedURL := "https://open.spotify.com/track/" + songdata.Tracks.Items[0].Data.ID
+				parsedAlbumURL := "https://open.spotify.com/album/" + songdata.Tracks.Items[0].Data.AlbumOfTrack.ID
+
+				for _, artistName := range songdata.Tracks.Items[0].Data.Artists.Items {
+					artistString = artistString + ", [" + artistName.Profile.Name + "](https://open.spotify.com/artist/" + strings.ReplaceAll(artistName.URI, "spotify:artist:", "") + ")"
+					ChannelLog(fmt.Sprintf(artistString))
+				}
+
+				artistString = strings.Replace(artistString, ", ", "", 1)
+
+				resp, err := grab.Get(".", songdata.Tracks.Items[0].Data.AlbumOfTrack.CoverArt.Sources[2].URL)
+				ChannelLog(fmt.Sprintf("Download saved to %v", resp.Filename))
+				file := resp.Filename
+				f, err := os.Open(file)
+				src, err := jpeg.Decode(f)
+				avgcol, err := prominentcolor.Kmeans(src)
+				ChannelLog(fmt.Sprintf("%v %v %v", avgcol[0].Color.R, avgcol[0].Color.G, avgcol[0].Color.B))
+
+				// COLOR CONVERSION YAAAAAAAAAAAAAAAAAAAAAAAAA
+				avgColRInt, err := strconv.ParseInt(strconv.FormatUint(uint64(avgcol[0].Color.R), 10), 10, 64)
+				avgColR, err := strconv.ParseFloat(strconv.Itoa(int(avgColRInt)), 64)
+
+				avgColGInt, err := strconv.ParseInt(strconv.FormatUint(uint64(avgcol[0].Color.G), 10), 10, 64)
+				avgColG, err := strconv.ParseFloat(strconv.Itoa(int(avgColGInt)), 64)
+
+				avgColBInt, err := strconv.ParseInt(strconv.FormatUint(uint64(avgcol[0].Color.B), 10), 10, 64)
+				avgColB, err := strconv.ParseFloat(strconv.Itoa(int(avgColBInt)), 64)
+
+				avgColRDiv := avgColR / 255
+				avgColGDiv := avgColG / 255
+				avgColBDiv := avgColB / 255
+
+				colorfulCol.R = avgColRDiv
+				colorfulCol.G = avgColGDiv
+				colorfulCol.B = avgColBDiv
+
+				hexcol, err := strconv.ParseInt(strings.ReplaceAll(colorfulCol.Hex(), "#", ""), 16, 64)
+
+				err = os.Remove(file)
+				if err != nil {
+					ChannelLog(fmt.Sprintf("An error occurred during file deletion: %v", err))
+				}
+				sDuration = int64(songdata.Tracks.Items[0].Data.Duration.TotalMilliseconds)
+				t = time.UnixMilli(sDuration)
+				tParse := t.Format("04:05")
+
+				err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Embeds: []*discordgo.MessageEmbed{
+							{
+								Title: songdata.Tracks.Items[0].Data.Name,
+								URL:   parsedURL,
+								Color: int(hexcol),
+								Thumbnail: &discordgo.MessageEmbedThumbnail{
+									URL:    songdata.Tracks.Items[0].Data.AlbumOfTrack.CoverArt.Sources[0].URL,
+									Width:  128,
+									Height: 128,
+								},
+								Fields: []*discordgo.MessageEmbedField{
+									{
+										Name:   "Artist",
+										Value:  artistString,
+										Inline: true,
+									},
+									{
+										Name:   "Album",
+										Value:  "[" + songdata.Tracks.Items[0].Data.AlbumOfTrack.Name + "](" + parsedAlbumURL + ")",
+										Inline: true,
+									},
+									//{
+									//	Name: "Release",
+									//	Value: songdata.Tracks.Items[0].Data.AlbumOfTrack.
+									//},
+									{
+										Name:  "Duration",
+										Value: tParse,
+									},
+								},
+							},
+						},
+					},
+				})
+
+				if err != nil {
+					ChannelLog(fmt.Sprintf("An error occurred sending the embed: %v", err))
+				}
+
+			}
+			if err != nil {
+				return
 			}
 
-			// BITMASK INTERPRETATION
-			// 1. turn bitmask int into string
-			// 2. split after each "1" bit
-			// 3. count zeroes before each "1" bit
-			// 4. map stuff to stuff
-			// 4 2.58 final chapter prologue 358/4 HD collectors edition featuring vergil from the devil may cry series DS. ???
-			// 5. profit
+		},
+		"lmgtfy": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			var (
+				err         error
+				q           string
+				link        string
+				parsedQuery string
+			)
 
-			userflagbitmask = fmt.Sprintf("%b", userflags)                           // bitmask to string
-			bitmaskSplit = strings.SplitAfterN(fmt.Sprint(userflagbitmask), "1", -1) // split after each "1", return as many as there are... this took three hours
-			fmt.Println("")
-			fmt.Println(userflags)
-			fmt.Println(int64(userflags))
-			fmt.Println(userflagbitmask)
-			fmt.Println(strings.Join(bitmaskSplit, ","))
+			options := i.ApplicationCommandData().Options
 
-			if err != nil || res != nil {
+			optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
+			for _, opt := range options {
+				optionMap[opt.Name] = opt
+			}
+
+			if option, ok := optionMap["query"]; ok {
+				// Option values must be type asserted from interface{}.
+				// Discordgo provides utility functions to make this simple.
+				q = option.StringValue()
+				parsedQuery = strings.ReplaceAll(q, " ", "+")
+			}
+
+			link = "https://lmgtfy.app/?q=" + parsedQuery
+
+			err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "Here you go: " + link,
+				},
+			})
+
+			if err != nil {
 				return
 			}
 		},
+		//"settings accentcolor": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		//	var (
+		//		err error
+		//		//udata     DBSettings
+		//		uid       string
+		//		input     string
+		//		parsedCol string
+		//		//hexcol    int
+		//	)
+
+		//	options := i.ApplicationCommandData().Options
+
+		//	optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
+		//	for _, opt := range options {
+		//		optionMap[opt.Name] = opt
+		//	}
+
+		//	if option, ok := optionMap["hexcode"]; ok {
+		//		// Option values must be type asserted from interface{}.
+		//		// Discordgo provides utility functions to make this simple.
+		//		input = option.StringValue()
+		//		parsedCol = strings.ReplaceAll(input, "#", "0x")
+		//	}
+
+		//	uid = i.Interaction.Member.User.ID
+
+		//	os.WriteFile("db/"+uid+".json", []byte("\"Color\": "+parsedCol), 0666)
+
+		//	err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		//		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		//		Data: &discordgo.InteractionResponseData{
+		//			Content: "Color has been set",
+		//			Flags:   discordgo.MessageFlagsEphemeral,
+		//		},
+		//	})
+
+		//	if err != nil {
+		//		return
+		//	}
+		//},
 	}
 )
 
@@ -822,6 +1789,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("Cannot open the session: %v", err)
 	}
+	s.UpdateStatusComplex(discordgo.UpdateStatusData{
+		Activities: []*discordgo.Activity{{Type: 3, Name: "over the Den"}},
+	})
 
 	log.Println("Adding commands...")
 	registeredCommands := make([]*discordgo.ApplicationCommand, len(commands))
@@ -840,10 +1810,6 @@ func main() {
 		}
 	}(s)
 	s.Identify.Intents = discordgo.MakeIntent(discordgo.IntentsAllWithoutPrivileged)
-
-	s.UpdateStatusComplex(discordgo.UpdateStatusData{
-		Activities: []*discordgo.Activity{{Type: 3, Name: "over the Den"}},
-	})
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt)
@@ -888,4 +1854,15 @@ func GetDevExcuse() *RandomDevExcuse {
 		}
 	}(resp.Body)
 	return randomexcuse
+}
+
+func ChannelLog(logInput string) {
+	fmt.Println(logInput)
+
+	_, err := s.ChannelMessageSendComplex("YOUR_LOG_CHANNEL_ID_HERE", &discordgo.MessageSend{
+		Content: logInput,
+	})
+	if err != nil {
+		fmt.Println(err)
+	}
 }
