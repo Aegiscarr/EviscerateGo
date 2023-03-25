@@ -6,7 +6,7 @@ Discord bot I'm developing as a long term "get good at problem solving and golan
 ##### REQUIREMENTS (if you want to have feature parity anyway)
 - [Go 1.19.2](https://go.dev/dl) or higher
 - a 64 bit computer, which you probably do if youve bought a computer in the last decade
-- a discord api token
+- a [discord api token](https://discord.com/developers)
 - a rapidapi token + being subscribed to the [unofficial spotify api](https://rapidapi.com/Glavier/api/spotify23)
 - a [cumulonimbus](https://alekeagle.me) api token
 
