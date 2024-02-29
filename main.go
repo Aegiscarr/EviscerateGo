@@ -30,18 +30,15 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/cavaliergopher/grab/v3"
 	"github.com/disintegration/gift"
-<<<<<<< HEAD
 	htgotts "github.com/hegedustibor/htgo-tts"
 	handlers "github.com/hegedustibor/htgo-tts/handlers"
 	voices "github.com/hegedustibor/htgo-tts/voices"
 	"github.com/jonas747/dca"
-=======
 
 	//htgotts "github.com/hegedustibor/htgo-tts"
 	//handlers "github.com/hegedustibor/htgo-tts/handlers"
 	//voices "github.com/hegedustibor/htgo-tts/voices"
 	//"github.com/jonas747/dca"
->>>>>>> 42aba7d (the 'i fixed some timeouts' update)
 	"github.com/lucasb-eyer/go-colorful"
 	"golang.org/x/image/webp"
 )
@@ -72,12 +69,9 @@ var (
 )
 
 var uploadClient http.Client
-<<<<<<< HEAD
 var buildstring string = " b230720"
-=======
 
 //var buildstring string = " b230825"
->>>>>>> 42aba7d (the 'i fixed some timeouts' update)
 
 //dw := imagick.NewDrawingWand()
 
@@ -94,11 +88,8 @@ type RandomDevExcuse struct {
 }
 
 func init() {
-<<<<<<< HEAD
 	*BotToken = ReadTokenFromFile("token-dev.txt")
-=======
 	*BotToken = ReadTokenFromFile("token.txt")
->>>>>>> 42aba7d (the 'i fixed some timeouts' update)
 	if *BotToken != "" {
 		log.Println("Token read from file")
 	} else {
@@ -241,7 +232,6 @@ var (
 				},
 			},
 		},
-<<<<<<< HEAD
 		{
 			applicationcommand: &discordgo.ApplicationCommand{
 				Name:        "bitmap",
@@ -256,7 +246,6 @@ var (
 				},
 			},
 		},
-=======
 		//{
 		//	applicationcommand: &discordgo.ApplicationCommand{
 		//		Name:        "bitmap",
@@ -271,7 +260,6 @@ var (
 		//		},
 		//	},
 		//},
->>>>>>> 42aba7d (the 'i fixed some timeouts' update)
 		{
 			applicationcommand: &discordgo.ApplicationCommand{
 				Name:        "userinfo",
@@ -392,7 +380,6 @@ var (
 			},
 		},
 		// music cmd's, oh feck
-<<<<<<< HEAD
 		{
 			applicationcommand: &discordgo.ApplicationCommand{
 				Name:        "play",
@@ -419,7 +406,6 @@ var (
 				Description: "disconnects from the voice channel",
 			},
 		},
-=======
 		//{
 		//	applicationcommand: &discordgo.ApplicationCommand{
 		//		Name:        "play",
@@ -446,7 +432,6 @@ var (
 		//		Description: "disconnects from the voice channel",
 		//	},
 		//},
->>>>>>> 42aba7d (the 'i fixed some timeouts' update)
 		{
 			applicationcommand: &discordgo.ApplicationCommand{
 				Name:        "songinfo",
@@ -484,11 +469,7 @@ var (
 		},
 		{
 			applicationcommand: &discordgo.ApplicationCommand{
-<<<<<<< HEAD
-				Name:        "lmgtfy",
-=======
 				Name:        "google",
->>>>>>> 42aba7d (the 'i fixed some timeouts' update)
 				Description: "Let me google that for you!",
 				Options: []*discordgo.ApplicationCommandOption{
 					{
