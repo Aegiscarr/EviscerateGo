@@ -30,11 +30,8 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/cavaliergopher/grab/v3"
 	"github.com/disintegration/gift"
-	htgotts "github.com/hegedustibor/htgo-tts"
-	handlers "github.com/hegedustibor/htgo-tts/handlers"
-	voices "github.com/hegedustibor/htgo-tts/voices"
-	"github.com/jonas747/dca"
 
+	//
 	//htgotts "github.com/hegedustibor/htgo-tts"
 	//handlers "github.com/hegedustibor/htgo-tts/handlers"
 	//voices "github.com/hegedustibor/htgo-tts/voices"
@@ -70,7 +67,7 @@ var (
 
 var uploadClient http.Client
 
-//var buildstring string = " b230825"
+var buildstring string = " b240229"
 
 //dw := imagick.NewDrawingWand()
 
@@ -87,8 +84,8 @@ type RandomDevExcuse struct {
 }
 
 func init() {
-	//*BotToken = ReadTokenFromFile("token-dev.txt")
-	*BotToken = ReadTokenFromFile("token.txt")
+	*BotToken = ReadTokenFromFile("token-dev.txt")
+	//*BotToken = ReadTokenFromFile("token.txt")
 	if *BotToken != "" {
 		log.Println("Token read from file")
 	} else {
@@ -1853,6 +1850,13 @@ var (
 
 			)
 
+			err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "song lookup in progress",
+				},
+			})
+
 			options := i.ApplicationCommandData().Options
 
 			optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
@@ -1873,13 +1877,16 @@ var (
 			songdata = GetRapidAPICall(parsedQuery, "tracks")
 
 			if songdata.Tracks.TotalCount == 0 {
-				err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: "No results",
-						Flags:   discordgo.MessageFlagsEphemeral,
+				_, err = s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+					Embeds: &[]*discordgo.MessageEmbed{
+						{
+							Title: "No results.",
+						},
 					},
 				})
+				if err != nil {
+					ChannelLog(fmt.Sprintf("An error occurred while sending failure response: %v", err))
+				}
 			} else {
 				parsedURL := "https://open.spotify.com/track/" + songdata.Tracks.Items[0].Data.ID
 				parsedAlbumURL := "https://open.spotify.com/album/" + songdata.Tracks.Items[0].Data.AlbumOfTrack.ID
@@ -1927,43 +1934,41 @@ var (
 				t = time.UnixMilli(sDuration)
 				tParse := t.Format("04:05")
 
-				err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Embeds: []*discordgo.MessageEmbed{
-							{
-								Title: songdata.Tracks.Items[0].Data.Name,
-								URL:   parsedURL,
-								Color: int(hexcol),
-								Thumbnail: &discordgo.MessageEmbedThumbnail{
-									URL:    songdata.Tracks.Items[0].Data.AlbumOfTrack.CoverArt.Sources[0].URL,
-									Width:  128,
-									Height: 128,
+				_, err = s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+					Embeds: &[]*discordgo.MessageEmbed{
+						{
+							Title: songdata.Tracks.Items[0].Data.Name,
+							URL:   parsedURL,
+							Color: int(hexcol),
+							Thumbnail: &discordgo.MessageEmbedThumbnail{
+								URL:    songdata.Tracks.Items[0].Data.AlbumOfTrack.CoverArt.Sources[0].URL,
+								Width:  128,
+								Height: 128,
+							},
+							Fields: []*discordgo.MessageEmbedField{
+								{
+									Name:   "Artist",
+									Value:  artistString,
+									Inline: true,
 								},
-								Fields: []*discordgo.MessageEmbedField{
-									{
-										Name:   "Artist",
-										Value:  artistString,
-										Inline: true,
-									},
-									{
-										Name:   "Album",
-										Value:  "[" + songdata.Tracks.Items[0].Data.AlbumOfTrack.Name + "](" + parsedAlbumURL + ")",
-										Inline: true,
-									},
-									//{
-									//	Name: "Release",
-									//	Value: songdata.Tracks.Items[0].Data.AlbumOfTrack.
-									//},
-									{
-										Name:  "Duration",
-										Value: tParse,
-									},
+								{
+									Name:   "Album",
+									Value:  "[" + songdata.Tracks.Items[0].Data.AlbumOfTrack.Name + "](" + parsedAlbumURL + ")",
+									Inline: true,
+								},
+								//{
+								//	Name: "Release",
+								//	Value: songdata.Tracks.Items[0].Data.AlbumOfTrack.
+								//},
+								{
+									Name:  "Duration",
+									Value: tParse,
 								},
 							},
 						},
 					},
-				})
+				},
+				)
 
 				if err != nil {
 					ChannelLog(fmt.Sprintf("An error occurred sending the embed: %v", err))
@@ -2327,7 +2332,7 @@ func main() {
 		log.Fatalf("Cannot open the session: %v", err)
 	}
 	s.UpdateStatusComplex(discordgo.UpdateStatusData{
-		Activities: []*discordgo.Activity{{Type: 3, Name: "over the Den"}},
+		Activities: []*discordgo.Activity{{Type: 3, Name: "over the Den // " + buildstring}},
 	})
 
 	log.Println("Adding commands...")

@@ -6,16 +6,17 @@ require (
 	github.com/EdlinOrg/prominentcolor v1.0.0
 	github.com/bwmarrin/discordgo v0.26.1
 	github.com/cavaliergopher/grab/v3 v3.0.1
+	github.com/hegedustibor/htgo-tts v0.0.0-20230402053941-cd8d1a158135
+	github.com/jonas747/dca v0.0.0-20210930103944-155f5e5f0cc7
 	golang.org/x/image v0.9.0
-	//github.com/hegedustibor/htgo-tts v0.0.0-20220821045517-04f3cda7a12f
-	//github.com/jonas747/dca v0.0.0-20210930103944-155f5e5f0cc7
+//github.com/hegedustibor/htgo-tts v0.0.0-20220821045517-04f3cda7a12f
+//github.com/jonas747/dca v0.0.0-20210930103944-155f5e5f0cc7
 )
 
 require (
-	//github.com/bwmarrin/snowflake v0.3.0 // indirect
-	//github.com/go-python/gpython v0.1.0 // indirect
-	//github.com/mattn/go-runewidth v0.0.3 // indirect
-	//github.com/peterh/liner v1.2.2 // indirect
+	github.com/hajimehoshi/go-mp3 v0.3.3 // indirect
+	github.com/hajimehoshi/oto/v2 v2.2.0 // indirect
+	github.com/jonas747/ogg v0.0.0-20161220051205-b4f6f4cf3757 // indirect
 )
 
 require (
