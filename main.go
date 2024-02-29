@@ -30,10 +30,18 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/cavaliergopher/grab/v3"
 	"github.com/disintegration/gift"
+<<<<<<< HEAD
 	htgotts "github.com/hegedustibor/htgo-tts"
 	handlers "github.com/hegedustibor/htgo-tts/handlers"
 	voices "github.com/hegedustibor/htgo-tts/voices"
 	"github.com/jonas747/dca"
+=======
+
+	//htgotts "github.com/hegedustibor/htgo-tts"
+	//handlers "github.com/hegedustibor/htgo-tts/handlers"
+	//voices "github.com/hegedustibor/htgo-tts/voices"
+	//"github.com/jonas747/dca"
+>>>>>>> 42aba7d (the 'i fixed some timeouts' update)
 	"github.com/lucasb-eyer/go-colorful"
 	"golang.org/x/image/webp"
 )
@@ -64,7 +72,12 @@ var (
 )
 
 var uploadClient http.Client
+<<<<<<< HEAD
 var buildstring string = " b230720"
+=======
+
+//var buildstring string = " b230825"
+>>>>>>> 42aba7d (the 'i fixed some timeouts' update)
 
 //dw := imagick.NewDrawingWand()
 
@@ -81,7 +94,11 @@ type RandomDevExcuse struct {
 }
 
 func init() {
+<<<<<<< HEAD
 	*BotToken = ReadTokenFromFile("token-dev.txt")
+=======
+	*BotToken = ReadTokenFromFile("token.txt")
+>>>>>>> 42aba7d (the 'i fixed some timeouts' update)
 	if *BotToken != "" {
 		log.Println("Token read from file")
 	} else {
@@ -224,6 +241,7 @@ var (
 				},
 			},
 		},
+<<<<<<< HEAD
 		{
 			applicationcommand: &discordgo.ApplicationCommand{
 				Name:        "bitmap",
@@ -238,6 +256,22 @@ var (
 				},
 			},
 		},
+=======
+		//{
+		//	applicationcommand: &discordgo.ApplicationCommand{
+		//		Name:        "bitmap",
+		//		Description: "convert an image to a text bitmap (JPG/PNG/GIF, not animated)",
+		//		Options: []*discordgo.ApplicationCommandOption{
+		//			{
+		//				Type:        discordgo.ApplicationCommandOptionAttachment,
+		//				Name:        "image",
+		//				Description: "image to convert",
+		//				Required:    true,
+		//			},
+		//		},
+		//	},
+		//},
+>>>>>>> 42aba7d (the 'i fixed some timeouts' update)
 		{
 			applicationcommand: &discordgo.ApplicationCommand{
 				Name:        "userinfo",
@@ -358,6 +392,7 @@ var (
 			},
 		},
 		// music cmd's, oh feck
+<<<<<<< HEAD
 		{
 			applicationcommand: &discordgo.ApplicationCommand{
 				Name:        "play",
@@ -384,6 +419,34 @@ var (
 				Description: "disconnects from the voice channel",
 			},
 		},
+=======
+		//{
+		//	applicationcommand: &discordgo.ApplicationCommand{
+		//		Name:        "play",
+		//		Description: "play a song",
+		//		Options: []*discordgo.ApplicationCommandOption{
+		//			{
+		//				Type:        discordgo.ApplicationCommandOptionString,
+		//				Name:        "url",
+		//				Description: "the video you want to play",
+		//				Required:    true,
+		//			},
+		//		},
+		//	},
+		//},
+		//{
+		//	applicationcommand: &discordgo.ApplicationCommand{
+		//		Name:        "join",
+		//		Description: "joins your voice chat",
+		//	},
+		//},
+		//{
+		//	applicationcommand: &discordgo.ApplicationCommand{
+		//		Name:        "leave",
+		//		Description: "disconnects from the voice channel",
+		//	},
+		//},
+>>>>>>> 42aba7d (the 'i fixed some timeouts' update)
 		{
 			applicationcommand: &discordgo.ApplicationCommand{
 				Name:        "songinfo",
@@ -421,7 +484,11 @@ var (
 		},
 		{
 			applicationcommand: &discordgo.ApplicationCommand{
+<<<<<<< HEAD
 				Name:        "lmgtfy",
+=======
+				Name:        "google",
+>>>>>>> 42aba7d (the 'i fixed some timeouts' update)
 				Description: "Let me google that for you!",
 				Options: []*discordgo.ApplicationCommandOption{
 					{
@@ -1288,6 +1355,7 @@ var (
 			fmt.Println(strings.Contains(query, "i"))
 			fmt.Println(strings.Contains(query, "femboy"))
 
+<<<<<<< HEAD
 			if i.Member.User.ID == "758810453622259743" && strings.Contains(query, "i") && strings.Contains(query, "femboy") {
 				fmt.Println(strings.Count(query, "not") % 2)
 				if strings.Count(query, "not")%2 == 0 {
@@ -1304,6 +1372,22 @@ var (
 			} else {
 				responseID = rand.Intn(19)
 			}
+=======
+			//if i.Member.User.ID == "758810453622259743" && strings.Contains(query, "i") && strings.Contains(query, "femboy") {
+			//	fmt.Println(strings.Count(query, "not") % 2)
+			//	if strings.Count(query, "not")%2 == 0 {
+			//		responseID = rand.Intn(9)
+			//	} else {
+			//		responseID = rand.Intn(5) + 14
+			//	}
+			//} else if strings.Contains(query, "mox") && strings.Contains(query, "femboy") {
+			//	if strings.Count(query, "not")%2 == 0 {
+			//		responseID = rand.Intn(9)
+			//	} else {
+			//		responseID = rand.Intn(5) + 14
+			//	}
+			responseID = rand.Intn(19)
+>>>>>>> 42aba7d (the 'i fixed some timeouts' update)
 
 			if responseID < 10 {
 				color = 0x00ae00 //affirmative
@@ -1686,6 +1770,7 @@ var (
 			}
 
 		},
+<<<<<<< HEAD
 		"join": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			ChannelLog(fmt.Sprintf("/// command `join` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
 			var (
@@ -1807,6 +1892,129 @@ var (
 			}
 
 		},
+=======
+		//"join": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		//	ChannelLog(fmt.Sprintf("/// command `join` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
+		//	var (
+		//		err      error
+		//		vcID     string
+		//		guild    *discordgo.Guild = new(discordgo.Guild)
+		//		guildID  string
+		//		msg      string
+		//		msgID    string
+		//		msgOldID string
+		//		file     string
+		//	)
+		//
+		//	guild, err = s.State.Guild(i.GuildID)
+		//	if err != nil {
+		//		ChannelLog(fmt.Sprintf("An error occurred during state loading: %v", err))
+		//	}
+		//	guildID = guild.ID
+		//	ChannelLog(fmt.Sprintf(guildID))
+		//
+		//	for _, voiceState := range guild.VoiceStates {
+		//		if voiceState.UserID == i.Member.User.ID {
+		//			vcID = voiceState.ChannelID
+		//		}
+		//	}
+		//
+		//	vc, err = s.ChannelVoiceJoin(guildID, vcID, false, true)
+		//	inVC = true
+		//
+		//	err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		//		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		//		Data: &discordgo.InteractionResponseData{
+		//			Content: "Joined your voice channel!",
+		//			Flags:   discordgo.MessageFlagsEphemeral,
+		//		},
+		//	})
+		//
+		//	msgOldID = ""
+		//
+		//	for vc != nil {
+		//		latestmessage, err := s.ChannelMessages("1063016193771982858", 1, "", "", "")
+		//		speech := htgotts.Speech{Folder: "audio", Language: voices.English, Handler: &handlers.Native{}}
+		//		msgID = latestmessage[0].ID
+		//		ChannelLog(fmt.Sprintf(msgID))
+		//
+		//		if msgID != msgOldID {
+		//
+		//			msg = latestmessage[0].Content
+		//			file, err = speech.CreateSpeechFile(msg, "tts")
+		//			msgOldID = msgID
+		//			ChannelLog(fmt.Sprintf(file))
+		//			vc.Speaking(true)
+		//			encodeSession, err := dca.EncodeFile(file, dca.StdEncodeOptions)
+		//			defer encodeSession.Cleanup()
+		//			output, err := os.Create("output.dca")
+		//			if err != nil {
+		//				return
+		//			}
+		//
+		//			decoder := dca.NewDecoder(output)
+		//
+		//			for {
+		//				frame, err := decoder.OpusFrame()
+		//				if err != nil {
+		//					if err != io.EOF {
+		//						// Handle the error
+		//					}
+		//
+		//					break
+		//				}
+		//
+		//				// Do something with the frame, in this example were sending it to discord
+		//				select {
+		//				case vc.OpusSend <- frame:
+		//				case <-time.After(time.Second):
+		//					// We haven't been able to send a frame in a second, assume the connection is borked
+		//					return
+		//				}
+		//			}
+		//		}
+		//
+		//		if err != nil {
+		//			ChannelLog(fmt.Sprintf("An error occurred trying to send OPUS audio data: %v", err))
+		//		}
+		//	}
+		//
+		//	if err != nil {
+		//		return
+		//	}
+		//},
+		//"leave": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		//	ChannelLog(fmt.Sprintf("/// command `leave` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
+		//	if vc != nil {
+		//		vc.Disconnect()
+		//		vc = nil
+		//		err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		//			Type: discordgo.InteractionResponseChannelMessageWithSource,
+		//			Data: &discordgo.InteractionResponseData{
+		//				Content: "Left your voice channel!",
+		//				Flags:   discordgo.MessageFlagsEphemeral,
+		//			},
+		//		})
+		//
+		//		if err != nil {
+		//			return
+		//		}
+		//	} else {
+		//		err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		//			Type: discordgo.InteractionResponseChannelMessageWithSource,
+		//			Data: &discordgo.InteractionResponseData{
+		//				Content: "Not in a voice channel",
+		//				Flags:   discordgo.MessageFlagsEphemeral,
+		//			},
+		//		})
+		//
+		//		if err != nil {
+		//			return
+		//		}
+		//	}
+		//
+		//},
+>>>>>>> 42aba7d (the 'i fixed some timeouts' update)
 		"songinfo": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			ChannelLog(fmt.Sprintf("/// command `songinfo` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
 			var (
@@ -1944,8 +2152,13 @@ var (
 			}
 
 		},
+<<<<<<< HEAD
 		"lmgtfy": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			ChannelLog(fmt.Sprintf("/// command `lmgtfy` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
+=======
+		"google": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			ChannelLog(fmt.Sprintf("/// command `google` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
+>>>>>>> 42aba7d (the 'i fixed some timeouts' update)
 			var (
 				err         error
 				q           string
@@ -2133,6 +2346,7 @@ var (
 				}
 			}
 		},
+<<<<<<< HEAD
 		"math": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			ChannelLog(fmt.Sprintf("/// command `math` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
 			var input string
@@ -2161,6 +2375,36 @@ var (
 				return
 			}
 		},
+=======
+		//"math": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		//	ChannelLog(fmt.Sprintf("/// command `math` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
+		//	var input string
+		//
+		//	options := i.ApplicationCommandData().Options
+		//	optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
+		//	for _, opt := range options {
+		//		optionMap[opt.Name] = opt
+		//	}
+		//	if option, ok := optionMap["input"]; ok {
+		//		// Option values must be type asserted from interface{}.
+		//		// Discordgo provides utility functions to make this simple.
+		//		input = strings.ToLower(option.StringValue())
+		//	}
+		//
+		//	DoMath(input)
+		//
+		//	err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		//		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		//		Data: &discordgo.InteractionResponseData{
+		//			Content: "Currently in development, no response will be given",
+		//			Flags:   discordgo.MessageFlagsEphemeral,
+		//		},
+		//	})
+		//	if err != nil {
+		//		return
+		//	}
+		//},
+>>>>>>> 42aba7d (the 'i fixed some timeouts' update)
 		"timestamp": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			ChannelLog(fmt.Sprintf("/// command `timestamp` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
 			var (
@@ -2195,8 +2439,13 @@ var (
 					return
 				}
 			}
+<<<<<<< HEAD
 			snowflake := Utc2snowflake(t)
 			fmt.Println(snowflake)
+=======
+			//snowflake := Utc2snowflake(t)
+			//fmt.Println(snowflake)
+>>>>>>> 42aba7d (the 'i fixed some timeouts' update)
 
 			err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -2223,6 +2472,7 @@ var (
 			}
 
 		},
+<<<<<<< HEAD
 		"ticket": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			ChannelLog(fmt.Sprintf("/// command `ticket` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
 			var (
@@ -2283,6 +2533,68 @@ var (
 				return
 			}
 		},
+=======
+		//"ticket": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		//	ChannelLog(fmt.Sprintf("/// command `ticket` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
+		//	var (
+		//		err                  error
+		//		title                string
+		//		msgData              *discordgo.MessageSend = new(discordgo.MessageSend)
+		//		dmChannel            *discordgo.Channel     = new(discordgo.Channel)
+		//		channelData          discordgo.GuildChannelCreateData
+		//		channelOverridesAll  discordgo.PermissionOverwrite
+		//		channelOverridesMods discordgo.PermissionOverwrite
+		//		//PermissionOverwrites []*discordgo.PermissionOverwrite
+		//	)
+		//
+		//	options := i.ApplicationCommandData().Options
+		//	optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
+		//	for _, opt := range options {
+		//		optionMap[opt.Name] = opt
+		//	}
+		//	if option, ok := optionMap["title"]; ok {
+		//		title = option.StringValue()
+		//		ChannelLog(fmt.Sprintf("Title set to %v", title))
+		//	}
+		//
+		//	msgData.Content = fmt.Sprintf("This is a test response. The title you entered was: %v", title)
+		//	dmChannel, err = s.UserChannelCreate(i.Member.User.ID)
+		//	if err != nil {
+		//		ChannelLog(fmt.Sprintf("Could not create DM channel: %v", err))
+		//	}
+		//
+		//	_, err = s.ChannelMessageSendComplex(dmChannel.ID, msgData)
+		//	if err != nil {
+		//		ChannelLog(fmt.Sprintf("An error occurred sending DM: %v", err))
+		//	}
+		//
+		//	err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		//		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		//		Data: &discordgo.InteractionResponseData{
+		//			Content: fmt.Sprintf("Check your DMs!"),
+		//			Flags:   discordgo.MessageFlagsEphemeral,
+		//		},
+		//	})
+		//
+		//	channelOverridesAll.ID = i.GuildID
+		//	channelOverridesAll.Type = discordgo.PermissionOverwriteTypeRole
+		//	channelOverridesAll.Deny = 0x0000000000000400
+		//
+		//	channelOverridesMods.ID = "785469547587174421"
+		//	channelOverridesMods.Type = discordgo.PermissionOverwriteTypeRole
+		//	channelOverridesMods.Allow = 0x0000000000000400
+		//
+		//	channelData.Name = fmt.Sprintf("%v-%v", title, i.Member.User.Username)
+		//	channelData.Type = discordgo.ChannelTypeGuildText
+		//	channelData.PermissionOverwrites = []*discordgo.PermissionOverwrite{&channelOverridesAll, &channelOverridesMods}
+		//	channelData.ParentID = "1101425457569730590"
+		//
+		//	s.GuildChannelCreateComplex(i.GuildID, channelData)
+		//	if err != nil {
+		//		return
+		//	}
+		//},
+>>>>>>> 42aba7d (the 'i fixed some timeouts' update)
 	}
 )
 
@@ -2296,7 +2608,11 @@ func main() {
 		log.Fatalf("Cannot open the session: %v", err)
 	}
 	s.UpdateStatusComplex(discordgo.UpdateStatusData{
+<<<<<<< HEAD
 		Activities: []*discordgo.Activity{{Type: 0, Name: "with code // " + buildstring}},
+=======
+		Activities: []*discordgo.Activity{{Type: 3, Name: "over the Den"}},
+>>>>>>> 42aba7d (the 'i fixed some timeouts' update)
 	})
 
 	log.Println("Adding commands...")

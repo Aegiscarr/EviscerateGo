@@ -3,10 +3,10 @@
 Discord bot I'm developing as a long term "get good at problem solving and golang" project
 
 #### *Setup*
-##### REQUIREMENTS (if you want to have feature parity anyway)
+##### REQUIREMENTS
 - [Go 1.19.2](https://go.dev/dl) or higher
 - a 64 bit computer, which you probably do if youve bought a computer in the last decade
-- a [discord api token](https://discord.com/developers)
+- a discord api token
 - a rapidapi token + being subscribed to the [unofficial spotify api](https://rapidapi.com/Glavier/api/spotify23)
 - a [cumulonimbus](https://alekeagle.me) api token
 
@@ -14,8 +14,6 @@ store your api tokens in:
 - token.txt (discord token)
 - rapid-sz-token.txt (rapidapi token)
 - uploader-token.txt (cumulonimbus token)
-
-at the bottom of main.go, there's a function called ChannelLog which needs a channel ID your bot will have access to. I'll set up a better way of doing it soon.
 
 ```
 go get
