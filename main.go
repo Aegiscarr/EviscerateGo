@@ -30,11 +30,14 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/cavaliergopher/grab/v3"
 	"github.com/disintegration/gift"
-	htgotts "github.com/hegedustibor/htgo-tts"
-	handlers "github.com/hegedustibor/htgo-tts/handlers"
-	voices "github.com/hegedustibor/htgo-tts/voices"
-	"github.com/jonas747/dca"
+
+	//
+	//htgotts "github.com/hegedustibor/htgo-tts"
+	//handlers "github.com/hegedustibor/htgo-tts/handlers"
+	//voices "github.com/hegedustibor/htgo-tts/voices"
+	//"github.com/jonas747/dca"
 	"github.com/lucasb-eyer/go-colorful"
+	"golang.org/x/image/webp"
 )
 
 // IDEAS
@@ -46,12 +49,15 @@ import (
 // reminders (needs db'ing)
 // mod stuffs
 // customizable interaction accent color
+// fun math things
+// timestamp
 
 // BotToken Flags
 var (
 	BotToken          = flag.String("token", "", "Bot token")
 	CumulonimbusToken = flag.String("cumulonimbus-token", "", "Cumulonimbus Token")
 	RapidSzToken      = flag.String("rapid-sz-token", "", "RapidSz Token")
+	UnsplashToken     = flag.String("unsplash-token", "", "Unsplash token")
 )
 
 var (
@@ -60,6 +66,8 @@ var (
 )
 
 var uploadClient http.Client
+
+var buildstring string = " b240229"
 
 //dw := imagick.NewDrawingWand()
 
@@ -76,7 +84,8 @@ type RandomDevExcuse struct {
 }
 
 func init() {
-	*BotToken = ReadTokenFromFile("token.txt")
+	*BotToken = ReadTokenFromFile("token-dev.txt")
+	//*BotToken = ReadTokenFromFile("token.txt")
 	if *BotToken != "" {
 		log.Println("Token read from file")
 	} else {
@@ -101,6 +110,13 @@ func init() {
 	} else {
 		log.Println("Token not read from file, fetching from env")
 		*RapidSzToken = os.Getenv("RAPID_SZ_TOKEN")
+	}
+	*UnsplashToken = ReadTokenFromFile("unsplash-token.txt")
+	if *UnsplashToken != "" {
+		log.Println("Unsplash token read from file")
+	} else {
+		log.Println("Token not read from file, fetching from env")
+		*UnsplashToken = os.Getenv("UNSPLASH_TOKEN")
 	}
 }
 
@@ -212,20 +228,20 @@ var (
 				},
 			},
 		},
-		{
-			applicationcommand: &discordgo.ApplicationCommand{
-				Name:        "bitmap",
-				Description: "convert an image to a text bitmap (JPG/PNG/GIF, not animated)",
-				Options: []*discordgo.ApplicationCommandOption{
-					{
-						Type:        discordgo.ApplicationCommandOptionAttachment,
-						Name:        "image",
-						Description: "image to convert",
-						Required:    true,
-					},
-				},
-			},
-		},
+		//{
+		//	applicationcommand: &discordgo.ApplicationCommand{
+		//		Name:        "bitmap",
+		//		Description: "convert an image to a text bitmap (JPG/PNG/GIF, not animated)",
+		//		Options: []*discordgo.ApplicationCommandOption{
+		//			{
+		//				Type:        discordgo.ApplicationCommandOptionAttachment,
+		//				Name:        "image",
+		//				Description: "image to convert",
+		//				Required:    true,
+		//			},
+		//		},
+		//	},
+		//},
 		{
 			applicationcommand: &discordgo.ApplicationCommand{
 				Name:        "userinfo",
@@ -346,20 +362,20 @@ var (
 			},
 		},
 		// music cmd's, oh feck
-		{
-			applicationcommand: &discordgo.ApplicationCommand{
-				Name:        "play",
-				Description: "play a song",
-				Options: []*discordgo.ApplicationCommandOption{
-					{
-						Type:        discordgo.ApplicationCommandOptionString,
-						Name:        "url",
-						Description: "the video you want to play",
-						Required:    true,
-					},
-				},
-			},
-		},
+		//{
+		//	applicationcommand: &discordgo.ApplicationCommand{
+		//		Name:        "play",
+		//		Description: "play a song",
+		//		Options: []*discordgo.ApplicationCommandOption{
+		//			{
+		//				Type:        discordgo.ApplicationCommandOptionString,
+		//				Name:        "url",
+		//				Description: "the video you want to play",
+		//				Required:    true,
+		//			},
+		//		},
+		//	},
+		//},
 		{
 			applicationcommand: &discordgo.ApplicationCommand{
 				Name:        "join",
@@ -372,6 +388,32 @@ var (
 				Description: "disconnects from the voice channel",
 			},
 		},
+		//{
+		//	applicationcommand: &discordgo.ApplicationCommand{
+		//		Name:        "play",
+		//		Description: "play a song",
+		//		Options: []*discordgo.ApplicationCommandOption{
+		//			{
+		//				Type:        discordgo.ApplicationCommandOptionString,
+		//				Name:        "url",
+		//				Description: "the video you want to play",
+		//				Required:    true,
+		//			},
+		//		},
+		//	},
+		//},
+		//{
+		//	applicationcommand: &discordgo.ApplicationCommand{
+		//		Name:        "join",
+		//		Description: "joins your voice chat",
+		//	},
+		//},
+		//{
+		//	applicationcommand: &discordgo.ApplicationCommand{
+		//		Name:        "leave",
+		//		Description: "disconnects from the voice channel",
+		//	},
+		//},
 		{
 			applicationcommand: &discordgo.ApplicationCommand{
 				Name:        "songinfo",
@@ -409,13 +451,55 @@ var (
 		},
 		{
 			applicationcommand: &discordgo.ApplicationCommand{
-				Name:        "lmgtfy",
+				Name:        "google",
 				Description: "Let me google that for you!",
 				Options: []*discordgo.ApplicationCommandOption{
 					{
 						Type:        discordgo.ApplicationCommandOptionString,
 						Name:        "query",
 						Description: "search query",
+						Required:    true,
+					},
+				},
+			},
+		},
+		{
+			applicationcommand: &discordgo.ApplicationCommand{
+				Name:        "statusset",
+				Description: "Set the bot's status",
+				Options: []*discordgo.ApplicationCommandOption{
+					{
+						Type:        discordgo.ApplicationCommandOptionInteger,
+						Name:        "type",
+						Description: "change between playing/watching/stuff",
+						Required:    true,
+						Choices: []*discordgo.ApplicationCommandOptionChoice{
+							{
+								Name:  "Playing",
+								Value: 0,
+							},
+							{
+								Name:  "Streaming",
+								Value: 1,
+							},
+							{
+								Name:  "Listening",
+								Value: 2,
+							},
+							{
+								Name:  "Watching",
+								Value: 3,
+							},
+							{
+								Name:  "Competing",
+								Value: 5,
+							},
+						},
+					},
+					{
+						Type:        discordgo.ApplicationCommandOptionString,
+						Name:        "string",
+						Description: "second part of status",
 						Required:    true,
 					},
 				},
@@ -435,10 +519,104 @@ var (
 		//		},
 		//	},
 		//},
+		{
+			applicationcommand: &discordgo.ApplicationCommand{
+				Name:        "unsplash",
+				Description: "Get an image from unsplash",
+				Options: []*discordgo.ApplicationCommandOption{
+					{
+						Type:        discordgo.ApplicationCommandOptionString,
+						Name:        "query",
+						Description: "search term",
+						Required:    true,
+					},
+				},
+			},
+		},
+		//{
+		//	applicationcommand: &discordgo.ApplicationCommand{
+		//		Name:        "math",
+		//		Description: "do some math",
+		//		Options: []*discordgo.ApplicationCommandOption{
+		//			{
+		//				Type:        discordgo.ApplicationCommandOptionString,
+		//				Name:        "input",
+		//				Description: "math input",
+		//				Required:    true,
+		//			},
+		//		},
+		//	},
+		//},
+		{
+			applicationcommand: &discordgo.ApplicationCommand{
+				Name:        "timestamp",
+				Description: "generate a hoverable timestamp",
+				Options: []*discordgo.ApplicationCommandOption{
+					{
+						Type:        discordgo.ApplicationCommandOptionString,
+						Name:        "time",
+						Description: "time to use // format as 01/02 03:04:05PM '06 -0700 (america style so mm/dd",
+						Required:    true,
+					},
+					{
+						Type:        discordgo.ApplicationCommandOptionString,
+						Name:        "display",
+						Description: "how the timestamp gets displayed",
+						Required:    true,
+						Choices: []*discordgo.ApplicationCommandOptionChoice{
+							{
+								Name:  "short time // hh:mm",
+								Value: "t",
+							},
+							{
+								Name:  "long time // hh:mm:ss",
+								Value: "T",
+							},
+							{
+								Name:  "short date // dd-mm-yyyy",
+								Value: "d",
+							},
+							{
+								Name:  "long date // dd [name of month] yyyy",
+								Value: "D",
+							},
+							{
+								Name:  "long date with short time // dd [name of month] yyyy at hh:mm",
+								Value: "f",
+							},
+							{
+								Name:  "long date with day of week and short time // [name of day] dd [name of month] yyyy at hh:mm",
+								Value: "F",
+							},
+							{
+								Name:  "relative // (in) x hours/minutes/seconds (ago)",
+								Value: "R",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			applicationcommand: &discordgo.ApplicationCommand{
+				Name:        "ticket",
+				Description: "Open a ticket",
+				Options: []*discordgo.ApplicationCommandOption{
+					{
+						Type:        discordgo.ApplicationCommandOptionString,
+						Name:        "title",
+						Description: "ticket title",
+						Required:    true,
+					},
+				},
+			},
+		},
 	}
 
 	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
 		"ping": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			ChannelLog(fmt.Sprintf("/// command `ping` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
+
 			err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
@@ -450,6 +628,8 @@ var (
 			}
 		},
 		"echo": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+
+			ChannelLog(fmt.Sprintf("/// command `echo` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
 
 			if i.Interaction.Member.Permissions&discordgo.PermissionManageMessages == discordgo.PermissionManageMessages {
 				options := i.ApplicationCommandData().Options
@@ -502,6 +682,7 @@ var (
 
 		},
 		"devexcuse": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			ChannelLog(fmt.Sprintf("/// command `devexcuse` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
 			var randomexcuse = GetDevExcuse()
 			var randomexcuseQuoted = `"` + randomexcuse.Data + `"`
 			var err error
@@ -516,6 +697,7 @@ var (
 			}
 		},
 		"d20": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			ChannelLog(fmt.Sprintf("/// command `d20` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
 			rand.Seed(time.Now().UnixNano())
 			var err error
 			var diceroll int = rand.Intn(20)
@@ -531,6 +713,7 @@ var (
 			}
 		},
 		"pke": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			ChannelLog(fmt.Sprintf("/// command `pke` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
 			var err error
 			err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -559,7 +742,7 @@ var (
 			}
 		},
 		"randomcolor": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-
+			ChannelLog(fmt.Sprintf("/// command `randomcolor` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
 			// RGB base to convert from
 			rand.Seed(time.Now().UnixNano())
 			var randomcolorRGB colorful.Color
@@ -621,6 +804,7 @@ var (
 			}
 		},
 		"color": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			ChannelLog(fmt.Sprintf("/// command `color` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
 			var err, res error
 
 			options := i.ApplicationCommandData().Options
@@ -791,6 +975,7 @@ var (
 			}
 		},
 		"owoify": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			ChannelLog(fmt.Sprintf("/// command `owoify` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
 			var err error
 
 			options := i.ApplicationCommandData().Options
@@ -821,6 +1006,7 @@ var (
 			}
 		},
 		"userinfo": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			ChannelLog(fmt.Sprintf("/// command `userinfo` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
 			var (
 				err error
 
@@ -1025,6 +1211,7 @@ var (
 
 		},
 		"rps": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			ChannelLog(fmt.Sprintf("/// command `rps` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
 			rand.Seed(time.Now().UnixNano())
 			var (
 				err error
@@ -1102,18 +1289,14 @@ var (
 			}
 		},
 		"askevi": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			ChannelLog(fmt.Sprintf("/// command `askevi` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
 			rand.Seed(time.Now().UnixNano())
 			var err error
 			var color int
-			responseID := rand.Intn(19)
+			var query string
+			var responseID int
+
 			responses := [20]string{"It is certain.", "It is decidedly so.", "Without a doubt.", "Yes, definitely.", "You may rely on it.", "As I see it, yes.", "Most likely.", "Outlook good.", "Yes.", "Signs point to yes", "Reply hazy, try again.", "Ask again later.", "Better not tell you now.", "Cannot predict now.", "Concentrate and ask again.", "Don't count on it.", "My reply is no.", "My sources say no.", "Outlook not so good.", "Very doubtful."}
-			if responseID < 10 {
-				color = 0x00ae00 //affirmative
-			} else if responseID > 9 && responseID < 14 {
-				color = 0xfcb103 //non-commital
-			} else {
-				color = 0xff0000 //negative
-			}
 
 			options := i.ApplicationCommandData().Options
 
@@ -1126,6 +1309,36 @@ var (
 				// Option values must be type asserted from interface{}.
 				// Discordgo provides utility functions to make this simple.
 				ChannelLog(fmt.Sprintf(option.StringValue()))
+				query = strings.ToLower(option.StringValue())
+			}
+
+			//femboyBiasTriggerMox := [3]string{"i", "femboy", "am"}
+
+			fmt.Println(i.Member.User.ID)
+			fmt.Println(strings.Contains(query, "i"))
+			fmt.Println(strings.Contains(query, "femboy"))
+
+			//if i.Member.User.ID == "758810453622259743" && strings.Contains(query, "i") && strings.Contains(query, "femboy") {
+			//	fmt.Println(strings.Count(query, "not") % 2)
+			//	if strings.Count(query, "not")%2 == 0 {
+			//		responseID = rand.Intn(9)
+			//	} else {
+			//		responseID = rand.Intn(5) + 14
+			//	}
+			//} else if strings.Contains(query, "mox") && strings.Contains(query, "femboy") {
+			//	if strings.Count(query, "not")%2 == 0 {
+			//		responseID = rand.Intn(9)
+			//	} else {
+			//		responseID = rand.Intn(5) + 14
+			//	}
+			responseID = rand.Intn(19)
+
+			if responseID < 10 {
+				color = 0x00ae00 //affirmative
+			} else if responseID > 9 && responseID < 14 {
+				color = 0xfcb103 //non-commital
+			} else {
+				color = 0xff0000 //negative
 			}
 
 			err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -1136,7 +1349,7 @@ var (
 							Title: responses[responseID],
 							Color: color,
 							Footer: &discordgo.MessageEmbedFooter{
-								Text: "Disclaimer: This answer is based on absolutely nothing.",
+								Text: "Disclaimer: This answer is based on absolutely nothing. At least, Aegis thinks so.",
 							},
 						},
 					},
@@ -1148,6 +1361,7 @@ var (
 			}
 		},
 		"magick": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			ChannelLog(fmt.Sprintf("/// command `magick` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
 			var (
 				err error
 
@@ -1163,6 +1377,17 @@ var (
 				colorfulCol    colorful.Color
 				intensity      float32
 			)
+
+			err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "image editing in process... please stand by.",
+				},
+			})
+
+			if err != nil {
+				ChannelLog(fmt.Sprintf("an error occurred sending initial message: %v", err))
+			}
 
 			execPath, err = os.Executable()
 			execFolder = filepath.Dir(execPath)
@@ -1189,10 +1414,38 @@ var (
 			if err != nil {
 				log.Fatal(err)
 			}
+
 			ChannelLog(fmt.Sprintf("Download saved to %v ", resp.Filename))
 			file := resp.Filename
+			buf := make([]byte, 512)
+
 			openFile, err := os.Open(file)
-			src, err = png.Decode(openFile)
+			if err != nil {
+				ChannelLog(fmt.Sprintf("An error occurred during file read: %v", err))
+			}
+			n, err := openFile.Read(buf)
+			ChannelLog(fmt.Sprintf("bytes read: `%v`", n))
+			if err != nil {
+				ChannelLog(fmt.Sprintf("An error occurred during file read to buffer: %v", err))
+			}
+			contentType := http.DetectContentType(buf)
+			ChannelLog(fmt.Sprintf("Content type is `%v`", contentType))
+			openFile.Close()
+			openFile, err = os.Open(file)
+
+			if contentType == "image/jpeg" {
+				src, err = jpeg.Decode(openFile)
+			}
+			if contentType == "image/png" {
+				src, err = png.Decode(openFile)
+			}
+			if contentType == "image/webp" {
+				src, err = webp.Decode(openFile)
+			}
+			if err != nil {
+				ChannelLog(fmt.Sprintf("An error occurred during decode: %v", err))
+				return
+			}
 
 			if method == "blur" {
 				if intensity == 0 {
@@ -1201,7 +1454,7 @@ var (
 
 				if intensity < 0 {
 					err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Type: discordgo.InteractionResponseDeferredMessageUpdate,
 						Data: &discordgo.InteractionResponseData{
 							Content: "what are you trying to do, break me!? (intensity should be more than 0)",
 							Flags:   discordgo.MessageFlagsEphemeral,
@@ -1222,7 +1475,7 @@ var (
 
 				if intensity < -100 || intensity > 100 {
 					err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Type: discordgo.InteractionResponseDeferredMessageUpdate,
 						Data: &discordgo.InteractionResponseData{
 							Content: "what are you trying to do, break me!? (intensity should be between -100 and 100)",
 							Flags:   discordgo.MessageFlagsEphemeral,
@@ -1244,7 +1497,7 @@ var (
 
 				if intensity < -100 || intensity > 500 {
 					err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Type: discordgo.InteractionResponseDeferredMessageUpdate,
 						Data: &discordgo.InteractionResponseData{
 							Content: "what are you trying to do, break me!? (intensity should be between -100 and 500)",
 							Flags:   discordgo.MessageFlagsEphemeral,
@@ -1307,7 +1560,7 @@ var (
 
 				if intensity < 0 {
 					err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Type: discordgo.InteractionResponseDeferredMessageUpdate,
 						Data: &discordgo.InteractionResponseData{
 							Content: "what are you trying to do, break me!? (intensity should be between 0 and 100)",
 							Flags:   discordgo.MessageFlagsEphemeral,
@@ -1329,7 +1582,7 @@ var (
 
 				if intensity < -100 || intensity > 100 {
 					err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Type: discordgo.InteractionResponseDeferredMessageUpdate,
 						Data: &discordgo.InteractionResponseData{
 							Content: "what are you trying to do, break me!? (intensity should be between -100 and 100)",
 							Flags:   discordgo.MessageFlagsEphemeral,
@@ -1381,7 +1634,7 @@ var (
 
 			form := new(bytes.Buffer)
 			writer := multipart.NewWriter(form)
-			fw, err := writer.CreateFormFile("file", filepath.Base("Cumulonimbus.svg"))
+			fw, err := writer.CreateFormFile("file", filepath.Base("evi-edit-upload.png"))
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -1420,24 +1673,39 @@ var (
 				return
 			}
 
-			err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Embeds: []*discordgo.MessageEmbed{
-						{
-							Title: "Here's the edited image!",
-							Color: int(hexcol),
-							Image: &discordgo.MessageEmbedImage{
-								URL:    uploadResponse.URL,
-								Width:  1024,
-								Height: 1024,
-							},
-							Description: "Upload powered by [Cumulonimbus](https://alekeagle.me)",
+			//_, err = s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+			//		Embeds: []*discordgo.MessageEmbed{
+			//			{
+			//				Title: "Here's the edited image!",
+			//				Color: int(hexcol),
+			//				Image: &discordgo.MessageEmbedImage{
+			//					URL:    uploadResponse.URL,
+			//					Width:  1024,
+			//					Height: 1024,
+			//				},
+			//				Description: "Upload powered by [Cumulonimbus](https://alekeagle.me)",
+			//			},
+			//		},
+			//	},
+			//)
+			_, err = s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+				Embeds: &[]*discordgo.MessageEmbed{
+					{
+						Title: "Here's the edited image!",
+						Color: int(hexcol),
+						Image: &discordgo.MessageEmbedImage{
+							URL:    uploadResponse.URL,
+							Width:  1024,
+							Height: 1024,
 						},
+						Description: "Upload powered by [Cumulonimbus](https://alekeagle.me)",
 					},
 				},
-			},
-			)
+			})
+
+			if err != nil {
+				ChannelLog(fmt.Sprintf("an error occurred while sending embed update: %v", err))
+			}
 
 			os.Remove(file)
 			os.Remove(imagePath)
@@ -1446,127 +1714,129 @@ var (
 			}
 
 		},
-		"join": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			var (
-				err      error
-				vcID     string
-				guild    *discordgo.Guild = new(discordgo.Guild)
-				guildID  string
-				msg      string
-				msgID    string
-				msgOldID string
-				file     string
-			)
-
-			guild, err = s.State.Guild(i.GuildID)
-			if err != nil {
-				ChannelLog(fmt.Sprintf("An error occurred during state loading: %v", err))
-			}
-			guildID = guild.ID
-			ChannelLog(fmt.Sprintf(guildID))
-
-			for _, voiceState := range guild.VoiceStates {
-				if voiceState.UserID == i.Member.User.ID {
-					vcID = voiceState.ChannelID
-				}
-			}
-
-			vc, err = s.ChannelVoiceJoin(guildID, vcID, false, true)
-			inVC = true
-
-			err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: "Joined your voice channel!",
-					Flags:   discordgo.MessageFlagsEphemeral,
-				},
-			})
-
-			msgOldID = ""
-
-			for vc != nil {
-				latestmessage, err := s.ChannelMessages("1063016193771982858", 1, "", "", "")
-				speech := htgotts.Speech{Folder: "audio", Language: voices.English, Handler: &handlers.Native{}}
-				msgID = latestmessage[0].ID
-				ChannelLog(fmt.Sprintf(msgID))
-
-				if msgID != msgOldID {
-
-					msg = latestmessage[0].Content
-					file, err = speech.CreateSpeechFile(msg, "tts")
-					msgOldID = msgID
-					ChannelLog(fmt.Sprintf(file))
-					vc.Speaking(true)
-					encodeSession, err := dca.EncodeFile(file, dca.StdEncodeOptions)
-					defer encodeSession.Cleanup()
-					output, err := os.Create("output.dca")
-					if err != nil {
-						return
-					}
-
-					decoder := dca.NewDecoder(output)
-
-					for {
-						frame, err := decoder.OpusFrame()
-						if err != nil {
-							if err != io.EOF {
-								// Handle the error
-							}
-
-							break
-						}
-
-						// Do something with the frame, in this example were sending it to discord
-						select {
-						case vc.OpusSend <- frame:
-						case <-time.After(time.Second):
-							// We haven't been able to send a frame in a second, assume the connection is borked
-							return
-						}
-					}
-				}
-
-				if err != nil {
-					ChannelLog(fmt.Sprintf("An error occurred trying to send OPUS audio data: %v", err))
-				}
-			}
-
-			if err != nil {
-				return
-			}
-		},
-		"leave": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-
-			if vc != nil {
-				vc.Disconnect()
-				vc = nil
-				err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: "Left your voice channel!",
-						Flags:   discordgo.MessageFlagsEphemeral,
-					},
-				})
-
-				if err != nil {
-					return
-				}
-			} else {
-				err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: "Not in a voice channel",
-						Flags:   discordgo.MessageFlagsEphemeral,
-					},
-				})
-
-				if err != nil {
-					return
-				}
-			}
-
-		},
+		//"join": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		//	ChannelLog(fmt.Sprintf("/// command `join` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
+		//	var (
+		//		err      error
+		//		vcID     string
+		//		guild    *discordgo.Guild = new(discordgo.Guild)
+		//		guildID  string
+		//		msg      string
+		//		msgID    string
+		//		msgOldID string
+		//		file     string
+		//	)
+		//
+		//	guild, err = s.State.Guild(i.GuildID)
+		//	if err != nil {
+		//		ChannelLog(fmt.Sprintf("An error occurred during state loading: %v", err))
+		//	}
+		//	guildID = guild.ID
+		//	ChannelLog(fmt.Sprintf(guildID))
+		//
+		//	for _, voiceState := range guild.VoiceStates {
+		//		if voiceState.UserID == i.Member.User.ID {
+		//			vcID = voiceState.ChannelID
+		//		}
+		//	}
+		//
+		//	vc, err = s.ChannelVoiceJoin(guildID, vcID, false, true)
+		//	inVC = true
+		//
+		//	err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		//		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		//		Data: &discordgo.InteractionResponseData{
+		//			Content: "Joined your voice channel!",
+		//			Flags:   discordgo.MessageFlagsEphemeral,
+		//		},
+		//	})
+		//
+		//	msgOldID = ""
+		//
+		//	for vc != nil {
+		//		latestmessage, err := s.ChannelMessages("1063016193771982858", 1, "", "", "")
+		//		speech := htgotts.Speech{Folder: "audio", Language: voices.English, Handler: &handlers.Native{}}
+		//		msgID = latestmessage[0].ID
+		//		ChannelLog(fmt.Sprintf(msgID))
+		//
+		//		if msgID != msgOldID {
+		//
+		//			msg = latestmessage[0].Content
+		//			file, err = speech.CreateSpeechFile(msg, "tts")
+		//			msgOldID = msgID
+		//			ChannelLog(fmt.Sprintf(file))
+		//			vc.Speaking(true)
+		//			encodeSession, err := dca.EncodeFile(file, dca.StdEncodeOptions)
+		//			defer encodeSession.Cleanup()
+		//			output, err := os.Create("output.dca")
+		//			if err != nil {
+		//				return
+		//			}
+		//
+		//			decoder := dca.NewDecoder(output)
+		//
+		//			for {
+		//				frame, err := decoder.OpusFrame()
+		//				if err != nil {
+		//					if err != io.EOF {
+		//						// Handle the error
+		//					}
+		//
+		//					break
+		//				}
+		//
+		//				// Do something with the frame, in this example were sending it to discord
+		//				select {
+		//				case vc.OpusSend <- frame:
+		//				case <-time.After(time.Second):
+		//					// We haven't been able to send a frame in a second, assume the connection is borked
+		//					return
+		//				}
+		//			}
+		//		}
+		//
+		//		if err != nil {
+		//			ChannelLog(fmt.Sprintf("An error occurred trying to send OPUS audio data: %v", err))
+		//		}
+		//	}
+		//
+		//	if err != nil {
+		//		return
+		//	}
+		//},
+		//"leave": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		//	ChannelLog(fmt.Sprintf("/// command `leave` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
+		//	if vc != nil {
+		//		vc.Disconnect()
+		//		vc = nil
+		//		err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		//			Type: discordgo.InteractionResponseChannelMessageWithSource,
+		//			Data: &discordgo.InteractionResponseData{
+		//				Content: "Left your voice channel!",
+		//				Flags:   discordgo.MessageFlagsEphemeral,
+		//			},
+		//		})
+		//
+		//		if err != nil {
+		//			return
+		//		}
+		//	} else {
+		//		err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		//			Type: discordgo.InteractionResponseChannelMessageWithSource,
+		//			Data: &discordgo.InteractionResponseData{
+		//				Content: "Not in a voice channel",
+		//				Flags:   discordgo.MessageFlagsEphemeral,
+		//			},
+		//		})
+		//
+		//		if err != nil {
+		//			return
+		//		}
+		//	}
+		//
+		//},
 		"songinfo": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			ChannelLog(fmt.Sprintf("/// command `songinfo` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
 			var (
 				err          error
 				query        string
@@ -1579,6 +1849,13 @@ var (
 				// Song info
 
 			)
+
+			err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "song lookup in progress",
+				},
+			})
 
 			options := i.ApplicationCommandData().Options
 
@@ -1600,13 +1877,16 @@ var (
 			songdata = GetRapidAPICall(parsedQuery, "tracks")
 
 			if songdata.Tracks.TotalCount == 0 {
-				err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: "No results",
-						Flags:   discordgo.MessageFlagsEphemeral,
+				_, err = s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+					Embeds: &[]*discordgo.MessageEmbed{
+						{
+							Title: "No results.",
+						},
 					},
 				})
+				if err != nil {
+					ChannelLog(fmt.Sprintf("An error occurred while sending failure response: %v", err))
+				}
 			} else {
 				parsedURL := "https://open.spotify.com/track/" + songdata.Tracks.Items[0].Data.ID
 				parsedAlbumURL := "https://open.spotify.com/album/" + songdata.Tracks.Items[0].Data.AlbumOfTrack.ID
@@ -1654,43 +1934,41 @@ var (
 				t = time.UnixMilli(sDuration)
 				tParse := t.Format("04:05")
 
-				err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Embeds: []*discordgo.MessageEmbed{
-							{
-								Title: songdata.Tracks.Items[0].Data.Name,
-								URL:   parsedURL,
-								Color: int(hexcol),
-								Thumbnail: &discordgo.MessageEmbedThumbnail{
-									URL:    songdata.Tracks.Items[0].Data.AlbumOfTrack.CoverArt.Sources[0].URL,
-									Width:  128,
-									Height: 128,
+				_, err = s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+					Embeds: &[]*discordgo.MessageEmbed{
+						{
+							Title: songdata.Tracks.Items[0].Data.Name,
+							URL:   parsedURL,
+							Color: int(hexcol),
+							Thumbnail: &discordgo.MessageEmbedThumbnail{
+								URL:    songdata.Tracks.Items[0].Data.AlbumOfTrack.CoverArt.Sources[0].URL,
+								Width:  128,
+								Height: 128,
+							},
+							Fields: []*discordgo.MessageEmbedField{
+								{
+									Name:   "Artist",
+									Value:  artistString,
+									Inline: true,
 								},
-								Fields: []*discordgo.MessageEmbedField{
-									{
-										Name:   "Artist",
-										Value:  artistString,
-										Inline: true,
-									},
-									{
-										Name:   "Album",
-										Value:  "[" + songdata.Tracks.Items[0].Data.AlbumOfTrack.Name + "](" + parsedAlbumURL + ")",
-										Inline: true,
-									},
-									//{
-									//	Name: "Release",
-									//	Value: songdata.Tracks.Items[0].Data.AlbumOfTrack.
-									//},
-									{
-										Name:  "Duration",
-										Value: tParse,
-									},
+								{
+									Name:   "Album",
+									Value:  "[" + songdata.Tracks.Items[0].Data.AlbumOfTrack.Name + "](" + parsedAlbumURL + ")",
+									Inline: true,
+								},
+								//{
+								//	Name: "Release",
+								//	Value: songdata.Tracks.Items[0].Data.AlbumOfTrack.
+								//},
+								{
+									Name:  "Duration",
+									Value: tParse,
 								},
 							},
 						},
 					},
-				})
+				},
+				)
 
 				if err != nil {
 					ChannelLog(fmt.Sprintf("An error occurred sending the embed: %v", err))
@@ -1702,7 +1980,8 @@ var (
 			}
 
 		},
-		"lmgtfy": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		"google": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			ChannelLog(fmt.Sprintf("/// command `google` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
 			var (
 				err         error
 				q           string
@@ -1777,6 +2056,269 @@ var (
 		//		return
 		//	}
 		//},
+		"statusset": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			var (
+				err       error
+				actType   int
+				actString string
+			)
+
+			if i.Member.User.ID == "386539887123365909" {
+				options := i.ApplicationCommandData().Options
+				optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
+				for _, opt := range options {
+					optionMap[opt.Name] = opt
+				}
+				if option, ok := optionMap["type"]; ok {
+					// Option values must be type asserted from interface{}.
+					// Discordgo provides utility functions to make this simple.
+					actType = int(option.IntValue())
+				}
+
+				if opt, ok := optionMap["string"]; ok {
+					actString = opt.StringValue()
+				}
+
+				s.UpdateStatusComplex(discordgo.UpdateStatusData{
+					Activities: []*discordgo.Activity{{Type: discordgo.ActivityType(actType), Name: actString}},
+				})
+				err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Status Set",
+						Flags:   discordgo.MessageFlagsEphemeral,
+					},
+				})
+
+				if err != nil {
+					return
+				}
+
+			} else {
+				err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Heh, yeah, I wasn't gonna give anyone control over the *status* of this thing. -aegis",
+						Flags:   discordgo.MessageFlagsEphemeral,
+					},
+				})
+				if err != nil {
+					return
+				}
+			}
+		},
+		"unsplash": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			ChannelLog(fmt.Sprintf("/// command `unsplash` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
+			var (
+				err      error
+				query    string
+				unsplash *UnsplashRandom
+			)
+
+			options := i.ApplicationCommandData().Options
+			optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
+			for _, opt := range options {
+				optionMap[opt.Name] = opt
+			}
+			if option, ok := optionMap["query"]; ok {
+				// Option values must be type asserted from interface{}.
+				// Discordgo provides utility functions to make this simple.
+				query = option.StringValue()
+			}
+			unsplash = UnsplashImageFromApi(query)
+
+			if unsplash.URLs.Small != "" {
+
+				fmt.Println(unsplash.URLs.Small)
+				fmt.Println(unsplash.Links.DownloadLocation)
+
+				err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Embeds: []*discordgo.MessageEmbed{
+							{
+								Title: "A random photo matching '" + query + "' (click to view on Unsplash)",
+								URL:   fmt.Sprintf("%s?utm_source=Eviscerate-The-Synth&utm_medium=referral", unsplash.Links.HTML),
+								Image: &discordgo.MessageEmbedImage{
+									URL:    unsplash.URLs.Small,
+									Width:  512,
+									Height: 512,
+								},
+								Description: fmt.Sprintf("ALL IMAGES ARE TAKEN FROM UNSPLASH.COM\n\n%s", unsplash.Description),
+								Author: &discordgo.MessageEmbedAuthor{
+									Name: fmt.Sprintf("Photo by %s", unsplash.User.Name),
+									URL:  unsplash.User.Links.HTML,
+								},
+							},
+						},
+					},
+				})
+				if err != nil {
+					return
+				}
+			} else {
+				err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Something happened, I couldn't find an image matching '" + query + "'! (Small Image URL is Blank)",
+						Flags:   discordgo.MessageFlagsEphemeral,
+					},
+				})
+				if err != nil {
+					return
+				}
+			}
+		},
+		//"math": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		//	ChannelLog(fmt.Sprintf("/// command `math` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
+		//	var input string
+		//
+		//	options := i.ApplicationCommandData().Options
+		//	optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
+		//	for _, opt := range options {
+		//		optionMap[opt.Name] = opt
+		//	}
+		//	if option, ok := optionMap["input"]; ok {
+		//		// Option values must be type asserted from interface{}.
+		//		// Discordgo provides utility functions to make this simple.
+		//		input = strings.ToLower(option.StringValue())
+		//	}
+		//
+		//	DoMath(input)
+		//
+		//	err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		//		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		//		Data: &discordgo.InteractionResponseData{
+		//			Content: "Currently in development, no response will be given",
+		//			Flags:   discordgo.MessageFlagsEphemeral,
+		//		},
+		//	})
+		//	if err != nil {
+		//		return
+		//	}
+		//},
+		"timestamp": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			ChannelLog(fmt.Sprintf("/// command `timestamp` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
+			var (
+				err     error
+				input   string
+				display string
+			)
+
+			options := i.ApplicationCommandData().Options
+			optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
+			for _, opt := range options {
+				optionMap[opt.Name] = opt
+			}
+			if option, ok := optionMap["time"]; ok {
+				input = strings.ToUpper(option.StringValue())
+			}
+			if opt, ok := optionMap["display"]; ok {
+				display = opt.StringValue()
+			}
+
+			t, err := Str2utc(input)
+			if err != nil {
+				ChannelLog(fmt.Sprintf("An error occurred while converting input to UTC time: %v", err))
+				err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: fmt.Sprintf("An error occurred while converting input to UTC time: %v", err),
+						Flags:   discordgo.MessageFlagsEphemeral,
+					},
+				})
+				if err != nil {
+					return
+				}
+			}
+			//snowflake := Utc2snowflake(t)
+			//fmt.Println(snowflake)
+
+			err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Embeds: []*discordgo.MessageEmbed{
+						{
+							Title: "Here is a snowflake timestamp!",
+							Fields: []*discordgo.MessageEmbedField{
+								{
+									Name:  "Display",
+									Value: fmt.Sprintf("<t:%v:%v>", t, display),
+								},
+								{
+									Name:  "Raw",
+									Value: fmt.Sprintf("`<t:%v:%v>`", t, display),
+								},
+							},
+						},
+					},
+				},
+			})
+			if err != nil {
+				return
+			}
+
+		},
+		//"ticket": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		//	ChannelLog(fmt.Sprintf("/// command `ticket` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
+		//	var (
+		//		err                  error
+		//		title                string
+		//		msgData              *discordgo.MessageSend = new(discordgo.MessageSend)
+		//		dmChannel            *discordgo.Channel     = new(discordgo.Channel)
+		//		channelData          discordgo.GuildChannelCreateData
+		//		channelOverridesAll  discordgo.PermissionOverwrite
+		//		channelOverridesMods discordgo.PermissionOverwrite
+		//		//PermissionOverwrites []*discordgo.PermissionOverwrite
+		//	)
+		//
+		//	options := i.ApplicationCommandData().Options
+		//	optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
+		//	for _, opt := range options {
+		//		optionMap[opt.Name] = opt
+		//	}
+		//	if option, ok := optionMap["title"]; ok {
+		//		title = option.StringValue()
+		//		ChannelLog(fmt.Sprintf("Title set to %v", title))
+		//	}
+		//
+		//	msgData.Content = fmt.Sprintf("This is a test response. The title you entered was: %v", title)
+		//	dmChannel, err = s.UserChannelCreate(i.Member.User.ID)
+		//	if err != nil {
+		//		ChannelLog(fmt.Sprintf("Could not create DM channel: %v", err))
+		//	}
+		//
+		//	_, err = s.ChannelMessageSendComplex(dmChannel.ID, msgData)
+		//	if err != nil {
+		//		ChannelLog(fmt.Sprintf("An error occurred sending DM: %v", err))
+		//	}
+		//
+		//	err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		//		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		//		Data: &discordgo.InteractionResponseData{
+		//			Content: fmt.Sprintf("Check your DMs!"),
+		//			Flags:   discordgo.MessageFlagsEphemeral,
+		//		},
+		//	})
+		//
+		//	channelOverridesAll.ID = i.GuildID
+		//	channelOverridesAll.Type = discordgo.PermissionOverwriteTypeRole
+		//	channelOverridesAll.Deny = 0x0000000000000400
+		//
+		//	channelOverridesMods.ID = "785469547587174421"
+		//	channelOverridesMods.Type = discordgo.PermissionOverwriteTypeRole
+		//	channelOverridesMods.Allow = 0x0000000000000400
+		//
+		//	channelData.Name = fmt.Sprintf("%v-%v", title, i.Member.User.Username)
+		//	channelData.Type = discordgo.ChannelTypeGuildText
+		//	channelData.PermissionOverwrites = []*discordgo.PermissionOverwrite{&channelOverridesAll, &channelOverridesMods}
+		//	channelData.ParentID = "1101425457569730590"
+		//
+		//	s.GuildChannelCreateComplex(i.GuildID, channelData)
+		//	if err != nil {
+		//		return
+		//	}
+		//},
 	}
 )
 
@@ -1790,7 +2332,7 @@ func main() {
 		log.Fatalf("Cannot open the session: %v", err)
 	}
 	s.UpdateStatusComplex(discordgo.UpdateStatusData{
-		Activities: []*discordgo.Activity{{Type: 3, Name: "over the Den"}},
+		Activities: []*discordgo.Activity{{Type: 3, Name: "over the Den // " + buildstring}},
 	})
 
 	log.Println("Adding commands...")
@@ -1859,7 +2401,7 @@ func GetDevExcuse() *RandomDevExcuse {
 func ChannelLog(logInput string) {
 	fmt.Println(logInput)
 
-	_, err := s.ChannelMessageSendComplex("YOUR_LOG_CHANNEL_ID_HERE", &discordgo.MessageSend{
+	_, err := s.ChannelMessageSendComplex("1087401958173847552", &discordgo.MessageSend{
 		Content: logInput,
 	})
 	if err != nil {

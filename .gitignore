@@ -2,6 +2,7 @@
 .env
 *.exe
 *token.txt
+token-dev.txt
 audio
 .dockerignore
 Dockerfile
