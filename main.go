@@ -43,7 +43,6 @@ import (
 // IDEAS
 // gpt integration ohdeargod (agony while keeping 24/7)
 // useless web
-// randomproto
 // server stats (meh, dont see the point)
 // polls (needs db'ing)
 // reminders (needs db'ing)
@@ -67,7 +66,7 @@ var (
 
 var uploadClient http.Client
 
-var buildstring string = " b240229"
+//var buildstring string = " b240301"
 
 //dw := imagick.NewDrawingWand()
 
@@ -118,6 +117,8 @@ func init() {
 		log.Println("Token not read from file, fetching from env")
 		*UnsplashToken = os.Getenv("UNSPLASH_TOKEN")
 	}
+
+	EviInitFTReplacers()
 }
 
 func ReadTokenFromFile(file string) string {
@@ -186,6 +187,14 @@ var (
 			applicationcommand: &discordgo.ApplicationCommand{
 				Name:        "d20",
 				Description: "Roll a d20",
+				Options: []*discordgo.ApplicationCommandOption{
+					{
+						Type:        discordgo.ApplicationCommandOptionString,
+						Name:        "rollfor",
+						Description: "what youre rolling for",
+						Required:    false,
+					},
+				},
 			},
 		},
 		{
@@ -599,14 +608,218 @@ var (
 		},
 		{
 			applicationcommand: &discordgo.ApplicationCommand{
-				Name:        "ticket",
-				Description: "Open a ticket",
+				Name:        "fancytext",
+				Description: "generates fancy text in one of 50 fonts",
 				Options: []*discordgo.ApplicationCommandOption{
 					{
 						Type:        discordgo.ApplicationCommandOptionString,
-						Name:        "title",
-						Description: "ticket title",
+						Name:        "text",
+						Description: "text to fancify",
 						Required:    true,
+					},
+					{
+						Type:        discordgo.ApplicationCommandOptionString,
+						Name:        "fontface",
+						Description: "unicode pseudofont to use",
+						Required:    false,
+						Choices: []*discordgo.ApplicationCommandOptionChoice{
+							{
+								Name:  "ⓑⓤⓑⓑⓛⓔⓢ (bubbles)",
+								Value: "1|bubbles",
+							},
+							{
+								Name:  "🅑🅤🅑🅑🅛🅔🅑🅛🅐🅒🅚 (bubbleblack)",
+								Value: "2|bubbleblack",
+							},
+							{
+								Name:  "⒫⒜⒭⒠⒩⒯⒣⒠⒮⒤⒮ (parenthesis)",
+								Value: "3|parenthesis",
+							},
+							{
+								Name:  "ˢᵘᵖᵉʳˢᶜʳⁱᵖᵗ (superscript)",
+								Value: "4|superscript",
+							},
+							{
+								Name:  "ｆｕｌｌｗｉｄｔｈ (fullwidth)",
+								Value: "5|fullwidth",
+							},
+							{
+								Name:  "𝐌𝐚𝐭𝐡𝐁𝐨𝐥𝐝 (mathbold)",
+								Value: "6|mathbold",
+							},
+							{
+								Name:  "𝑴𝒂𝒕𝒉𝑰𝒕𝒂𝒍𝒊𝒄 (mathitalic)",
+								Value: "7|mathitalic",
+							},
+							{
+								Name:  "𝖬𝖺𝗍𝗁𝖲𝖺𝗇𝗌 (mathsans)",
+								Value: "8|mathsans",
+							},
+							{
+								Name:  "𝘔𝘢𝘵𝘩𝘚𝘢𝘯𝘴𝘐𝘵𝘢𝘭𝘪𝘤 (mathsansitalic)",
+								Value: "9|mathsansital",
+							},
+							{
+								Name:  "𝗠𝗮𝘁𝗵𝗦𝗮𝗻𝘀𝗕𝗼𝗹𝗱 (mathsansbold)",
+								Value: "10|mathsansbold",
+							},
+							{
+								Name:  "𝙈𝙖𝙩𝙝𝙎𝙖𝙣𝙨𝘽𝙤𝙡𝙙𝙄𝙩𝙖𝙡𝙞𝙘 (mathsansbolditalic)",
+								Value: "11|mathsansboldital",
+							},
+							{
+								Name:  "𝔉𝔯𝔞𝔨𝔱𝔲𝔯 (fraktur)",
+								Value: "12|fraktur",
+							},
+							{
+								Name:  "𝕱𝖗𝖆𝖐𝖙𝖚𝖗𝕭𝖔𝖑𝖉 (frakturbold)",
+								Value: "13|frakturbold",
+							},
+							{
+								Name:  "Яц$$їап (russian)",
+								Value: "14|russian",
+							},
+							{
+								Name:  " ﾌ卂卩卂几乇丂乇 (japanese)",
+								Value: "15|japanese",
+							},
+							{
+								Name:  "คгค๒เς (arabic)",
+								Value: "16|arabic",
+							},
+							{
+								Name:  "ᎦᏗᎥᏒᎩ (fairy)",
+								Value: "17|fairy",
+							},
+							{
+								Name:  "աɨʐǟʀɖ (wizard)",
+								Value: "18|wizard",
+							},
+							{
+								Name:  "𝙼𝚘𝚗𝚘𝚜𝚙𝚊𝚌𝚎 (monospace)",
+								Value: "19|monospace",
+							},
+							{
+								Name:  "𝒮𝒸𝓇𝒾𝓅𝓉 (script)",
+								Value: "20|script",
+							},
+							{
+								Name:  "𝓢𝓬𝓻𝓲𝓹𝓽𝓑𝓸𝓵𝓭 (scriptbold)",
+								Value: "21|scriptbold",
+							},
+							{
+								Name:  "𝔻𝕠𝕦𝕓𝕝𝕖𝕊𝕥𝕣𝕦𝕔𝕜 (doublestruck)",
+								Value: "22|doublestruck",
+							},
+							{
+								Name:  "🅂🅀🅄🄰🅁🄴🄳 (squared)",
+								Value: "23|squared",
+							},
+							{
+								Name:  "ƒυηку (funky)",
+								Value: "24|funky",
+							},
+							{
+								Name:  "Áćúté (acute)",
+								Value: "25|acute",
+							},
+							//{
+							//	Name:  "ṚöċḳḊöẗṡ (rockdots)",
+							//	Value: "26|rockdots",
+							//},
+							//{
+							//	Name:  "Sŧɍøꝁɇđ (stroked)",
+							//	Value: "27|stroked",
+							//},
+							//{
+							//	Name:  "Iuʌǝɹʇǝp (inverted)",
+							//	Value: "28|inverted",
+							//},
+							//{
+							//	Name:  "1337 [3><7?3/V\\3] (1337extreme)",
+							//	Value: "29|1337extreme",
+							//},
+							//{
+							//	Name:  "Ｈｅａｖｙ (heavy)",
+							//	Value: "30|heavy",
+							//},
+							//{
+							//	Name:  "Lιƚƚʅҽ Fαɳƈყ (littlefancy)",
+							//	Value: "31|littlefancy",
+							//},
+							//{
+							//	Name:  "ʄąცƖɛ (fable)",
+							//	Value: "32|fable",
+							//},
+							//{
+							//	Name:  "ŞຟirlŞ (swirls)",
+							//	Value: "33|swirls",
+							//},
+							//{
+							//	Name:  "Ä¢¢êñ† (accent)",
+							//	Value: "34|accent",
+							//},
+							//{
+							//	Name:  "ᄂIПΣΛЯ (linear)",
+							//	Value: "35|linear",
+							//},
+							//{
+							//	Name:  "₴₵Ɽł฿฿ⱠɆ₴ (scribbles)",
+							//	Value: "36|scribbles",
+							//},
+							//{
+							//	Name:  "ﾌﾑｱﾑ刀乇丂乇 丂ᄃ尺ﾉｱｲ (japanesescript)",
+							//	Value: "37|jpscript",
+							//},
+							//{
+							//	Name:  "【S】【o】【l】【i】【t】【u】【d】【e】(solitude)",
+							//	Value: "38|solitude",
+							//},
+							//{
+							//	Name:  "『B』『r』『a』『c』『k』『e』『t』『s』(brackets)",
+							//	Value: "39|brackets",
+							//},
+							//{
+							//	Name:  "[̲̅B][̲̅o][̲̅x] [̲̅L][̲̅i][̲̅n][̲̅e][̲̅s] (boxlines)",
+							//	Value: "40|boxlines",
+							//},
+							//{
+							//	Name:  "ϚվʍҍօӀìç (symbolic)",
+							//	Value: "41|symbolic",
+							//},
+							//{
+							//	Name:  "ᗷᘿᘉᖶ (bent)",
+							//	Value: "42|bent",
+							//},
+							//{
+							//	Name:  "D̶̶a̶s̶h̶e̶s̶  (dashes)",
+							//	Value: "43|dashes",
+							//},
+							//{
+							//	Name:  "S̴i̴d̴e̴S̴q̴u̴i̴g̴g̴l̴e̴s̴  (sidesquiggles)",
+							//	Value: "44|sidesquiggles",
+							//},
+							//{
+							//	Name:  "S̷i̷d̷e̷S̷l̷a̷s̷h̷e̷s̷  (sideslashes)",
+							//	Value: "45|sideslashes",
+							//},
+							//{
+							//	Name:  "D̳o̳u̳b̳l̳e̳U̳n̳d̳e̳r̳l̳i̳n̳e̳ (doubleunderline)",
+							//	Value: "46|doubleunderline",
+							//},
+							//{
+							//	Name:  "T̾o̾p̾S̾q̾u̾i̾g̾g̾l̾e̾s̾ (topsquiggles)",
+							//	Value: "47|topsquiggles",
+							//},
+							//{
+							//	Name:  "A͎r͎r͎o͎w͎U͎p͎ (arrowup)",
+							//	Value: "48|arrowup",
+							//},
+							//{
+							//	Name:  "E͓̽x͓̽e͓̽s͓̽ (exes)",
+							//	Value: "49|exes",
+							//},
+						},
 					},
 				},
 			},
@@ -698,16 +911,46 @@ var (
 		},
 		"d20": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			ChannelLog(fmt.Sprintf("/// command `d20` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
+
+			var rolledFor string
+			options := i.ApplicationCommandData().Options
+
+			optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
+			for _, opt := range options {
+				optionMap[opt.Name] = opt
+			}
+
+			if option, ok := optionMap["rollfor"]; ok {
+				rolledFor = option.StringValue()
+			}
+
+			if rolledFor == "" {
+				rolledFor = "nothing"
+			}
+
 			rand.Seed(time.Now().UnixNano())
+
 			var err error
 			var diceroll int = rand.Intn(20)
+
+			ChannelLog(fmt.Sprintf("%v rolled for %v and got a %v", i.Member.User.Username, rolledFor, diceroll+1))
 			dicerolls := [20]string{`Luck really isn't on your side today, huh? It's a 1.`, `A 2. Couldn't have been much worse.`, `It's a tree!- Oh, wait. A 3.`, `A four-se. Of course. That didn't work, did it?`, `A 5. Nothing funny here.`, `A 6. The devil, anyone?`, `Lucky number 7! Now can you get two more?`, `8, not bad.`, `Just under halfway up. A 9`, `A 10! Halfway up the scale!`, `11. Decent.`, `12. Could have been much worse. Could've also been better, though.`, `13. Feelin' lucky?`, `Aand it's come up 14!`, `15! Getting up there!`, `16, solid.`, `17. Rolling real high now, aren't you?`, `18! You're old eno- wait this isn't a birthday.`, `19! So CLOSE!`, `NAT 20 BAYBEE!`}
+
 			err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
-					Content: dicerolls[diceroll],
+					Embeds: []*discordgo.MessageEmbed{
+						{
+							Title: dicerolls[diceroll],
+							Color: 0x8c1bb1,
+							Footer: &discordgo.MessageEmbedFooter{
+								Text: i.Member.User.Username + " rolled for " + rolledFor,
+							},
+						},
+					},
 				},
 			})
+
 			if err != nil {
 				return
 			}
@@ -1312,25 +1555,10 @@ var (
 				query = strings.ToLower(option.StringValue())
 			}
 
-			//femboyBiasTriggerMox := [3]string{"i", "femboy", "am"}
-
 			fmt.Println(i.Member.User.ID)
 			fmt.Println(strings.Contains(query, "i"))
 			fmt.Println(strings.Contains(query, "femboy"))
 
-			//if i.Member.User.ID == "758810453622259743" && strings.Contains(query, "i") && strings.Contains(query, "femboy") {
-			//	fmt.Println(strings.Count(query, "not") % 2)
-			//	if strings.Count(query, "not")%2 == 0 {
-			//		responseID = rand.Intn(9)
-			//	} else {
-			//		responseID = rand.Intn(5) + 14
-			//	}
-			//} else if strings.Contains(query, "mox") && strings.Contains(query, "femboy") {
-			//	if strings.Count(query, "not")%2 == 0 {
-			//		responseID = rand.Intn(9)
-			//	} else {
-			//		responseID = rand.Intn(5) + 14
-			//	}
 			responseID = rand.Intn(19)
 
 			if responseID < 10 {
@@ -1412,7 +1640,19 @@ var (
 			}
 			resp, err := grab.Get(".", imgUrl)
 			if err != nil {
-				log.Fatal(err)
+				fmt.Print(err)
+				_, err = s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+					Embeds: &[]*discordgo.MessageEmbed{
+						{
+							Title: fmt.Sprintf("Error: no image found at URL %v", imgUrl),
+							Color: 0xdd0000,
+						},
+					},
+				})
+
+				if err != nil {
+					ChannelLog(fmt.Sprintf("an error occurred while sending embed update: %v", err))
+				}
 			}
 
 			ChannelLog(fmt.Sprintf("Download saved to %v ", resp.Filename))
@@ -1453,11 +1693,12 @@ var (
 				}
 
 				if intensity < 0 {
-					err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseDeferredMessageUpdate,
-						Data: &discordgo.InteractionResponseData{
-							Content: "what are you trying to do, break me!? (intensity should be more than 0)",
-							Flags:   discordgo.MessageFlagsEphemeral,
+					_, err = s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+						Embeds: &[]*discordgo.MessageEmbed{
+							{
+								Title: "intensity should be higher than 0",
+								Color: 0xdd0000,
+							},
 						},
 					})
 				}
@@ -1473,16 +1714,6 @@ var (
 					intensity = 50
 				}
 
-				if intensity < -100 || intensity > 100 {
-					err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseDeferredMessageUpdate,
-						Data: &discordgo.InteractionResponseData{
-							Content: "what are you trying to do, break me!? (intensity should be between -100 and 100)",
-							Flags:   discordgo.MessageFlagsEphemeral,
-						},
-					})
-				}
-
 				g := gift.New(
 					gift.Contrast(intensity),
 				)
@@ -1493,16 +1724,6 @@ var (
 			if method == "saturation" {
 				if intensity == 0 {
 					intensity = 50
-				}
-
-				if intensity < -100 || intensity > 500 {
-					err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseDeferredMessageUpdate,
-						Data: &discordgo.InteractionResponseData{
-							Content: "what are you trying to do, break me!? (intensity should be between -100 and 500)",
-							Flags:   discordgo.MessageFlagsEphemeral,
-						},
-					})
 				}
 
 				g := gift.New(
@@ -1573,29 +1794,6 @@ var (
 				)
 				dst = image.NewRGBA(g.Bounds(src.Bounds()))
 				g.Draw(dst, src)
-			}
-
-			if method == "brightness" {
-				if intensity == 0 {
-					intensity = 25
-				}
-
-				if intensity < -100 || intensity > 100 {
-					err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseDeferredMessageUpdate,
-						Data: &discordgo.InteractionResponseData{
-							Content: "what are you trying to do, break me!? (intensity should be between -100 and 100)",
-							Flags:   discordgo.MessageFlagsEphemeral,
-						},
-					})
-				}
-
-				g := gift.New(
-					gift.Brightness(intensity),
-				)
-				dst = image.NewRGBA(g.Bounds(src.Bounds()))
-				g.Draw(dst, src)
-
 			}
 
 			avgcol, err := prominentcolor.Kmeans(dst)
@@ -1672,22 +1870,6 @@ var (
 			if err != nil {
 				return
 			}
-
-			//_, err = s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
-			//		Embeds: []*discordgo.MessageEmbed{
-			//			{
-			//				Title: "Here's the edited image!",
-			//				Color: int(hexcol),
-			//				Image: &discordgo.MessageEmbedImage{
-			//					URL:    uploadResponse.URL,
-			//					Width:  1024,
-			//					Height: 1024,
-			//				},
-			//				Description: "Upload powered by [Cumulonimbus](https://alekeagle.me)",
-			//			},
-			//		},
-			//	},
-			//)
 			_, err = s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 				Embeds: &[]*discordgo.MessageEmbed{
 					{
@@ -1714,127 +1896,6 @@ var (
 			}
 
 		},
-		//"join": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		//	ChannelLog(fmt.Sprintf("/// command `join` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
-		//	var (
-		//		err      error
-		//		vcID     string
-		//		guild    *discordgo.Guild = new(discordgo.Guild)
-		//		guildID  string
-		//		msg      string
-		//		msgID    string
-		//		msgOldID string
-		//		file     string
-		//	)
-		//
-		//	guild, err = s.State.Guild(i.GuildID)
-		//	if err != nil {
-		//		ChannelLog(fmt.Sprintf("An error occurred during state loading: %v", err))
-		//	}
-		//	guildID = guild.ID
-		//	ChannelLog(fmt.Sprintf(guildID))
-		//
-		//	for _, voiceState := range guild.VoiceStates {
-		//		if voiceState.UserID == i.Member.User.ID {
-		//			vcID = voiceState.ChannelID
-		//		}
-		//	}
-		//
-		//	vc, err = s.ChannelVoiceJoin(guildID, vcID, false, true)
-		//	inVC = true
-		//
-		//	err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		//		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		//		Data: &discordgo.InteractionResponseData{
-		//			Content: "Joined your voice channel!",
-		//			Flags:   discordgo.MessageFlagsEphemeral,
-		//		},
-		//	})
-		//
-		//	msgOldID = ""
-		//
-		//	for vc != nil {
-		//		latestmessage, err := s.ChannelMessages("1063016193771982858", 1, "", "", "")
-		//		speech := htgotts.Speech{Folder: "audio", Language: voices.English, Handler: &handlers.Native{}}
-		//		msgID = latestmessage[0].ID
-		//		ChannelLog(fmt.Sprintf(msgID))
-		//
-		//		if msgID != msgOldID {
-		//
-		//			msg = latestmessage[0].Content
-		//			file, err = speech.CreateSpeechFile(msg, "tts")
-		//			msgOldID = msgID
-		//			ChannelLog(fmt.Sprintf(file))
-		//			vc.Speaking(true)
-		//			encodeSession, err := dca.EncodeFile(file, dca.StdEncodeOptions)
-		//			defer encodeSession.Cleanup()
-		//			output, err := os.Create("output.dca")
-		//			if err != nil {
-		//				return
-		//			}
-		//
-		//			decoder := dca.NewDecoder(output)
-		//
-		//			for {
-		//				frame, err := decoder.OpusFrame()
-		//				if err != nil {
-		//					if err != io.EOF {
-		//						// Handle the error
-		//					}
-		//
-		//					break
-		//				}
-		//
-		//				// Do something with the frame, in this example were sending it to discord
-		//				select {
-		//				case vc.OpusSend <- frame:
-		//				case <-time.After(time.Second):
-		//					// We haven't been able to send a frame in a second, assume the connection is borked
-		//					return
-		//				}
-		//			}
-		//		}
-		//
-		//		if err != nil {
-		//			ChannelLog(fmt.Sprintf("An error occurred trying to send OPUS audio data: %v", err))
-		//		}
-		//	}
-		//
-		//	if err != nil {
-		//		return
-		//	}
-		//},
-		//"leave": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		//	ChannelLog(fmt.Sprintf("/// command `leave` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
-		//	if vc != nil {
-		//		vc.Disconnect()
-		//		vc = nil
-		//		err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		//			Type: discordgo.InteractionResponseChannelMessageWithSource,
-		//			Data: &discordgo.InteractionResponseData{
-		//				Content: "Left your voice channel!",
-		//				Flags:   discordgo.MessageFlagsEphemeral,
-		//			},
-		//		})
-		//
-		//		if err != nil {
-		//			return
-		//		}
-		//	} else {
-		//		err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		//			Type: discordgo.InteractionResponseChannelMessageWithSource,
-		//			Data: &discordgo.InteractionResponseData{
-		//				Content: "Not in a voice channel",
-		//				Flags:   discordgo.MessageFlagsEphemeral,
-		//			},
-		//		})
-		//
-		//		if err != nil {
-		//			return
-		//		}
-		//	}
-		//
-		//},
 		"songinfo": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			ChannelLog(fmt.Sprintf("/// command `songinfo` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
 			var (
@@ -2016,46 +2077,6 @@ var (
 				return
 			}
 		},
-		//"settings accentcolor": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		//	var (
-		//		err error
-		//		//udata     DBSettings
-		//		uid       string
-		//		input     string
-		//		parsedCol string
-		//		//hexcol    int
-		//	)
-
-		//	options := i.ApplicationCommandData().Options
-
-		//	optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
-		//	for _, opt := range options {
-		//		optionMap[opt.Name] = opt
-		//	}
-
-		//	if option, ok := optionMap["hexcode"]; ok {
-		//		// Option values must be type asserted from interface{}.
-		//		// Discordgo provides utility functions to make this simple.
-		//		input = option.StringValue()
-		//		parsedCol = strings.ReplaceAll(input, "#", "0x")
-		//	}
-
-		//	uid = i.Interaction.Member.User.ID
-
-		//	os.WriteFile("db/"+uid+".json", []byte("\"Color\": "+parsedCol), 0666)
-
-		//	err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		//		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		//		Data: &discordgo.InteractionResponseData{
-		//			Content: "Color has been set",
-		//			Flags:   discordgo.MessageFlagsEphemeral,
-		//		},
-		//	})
-
-		//	if err != nil {
-		//		return
-		//	}
-		//},
 		"statusset": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			var (
 				err       error
@@ -2169,34 +2190,6 @@ var (
 				}
 			}
 		},
-		//"math": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		//	ChannelLog(fmt.Sprintf("/// command `math` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
-		//	var input string
-		//
-		//	options := i.ApplicationCommandData().Options
-		//	optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
-		//	for _, opt := range options {
-		//		optionMap[opt.Name] = opt
-		//	}
-		//	if option, ok := optionMap["input"]; ok {
-		//		// Option values must be type asserted from interface{}.
-		//		// Discordgo provides utility functions to make this simple.
-		//		input = strings.ToLower(option.StringValue())
-		//	}
-		//
-		//	DoMath(input)
-		//
-		//	err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		//		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		//		Data: &discordgo.InteractionResponseData{
-		//			Content: "Currently in development, no response will be given",
-		//			Flags:   discordgo.MessageFlagsEphemeral,
-		//		},
-		//	})
-		//	if err != nil {
-		//		return
-		//	}
-		//},
 		"timestamp": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			ChannelLog(fmt.Sprintf("/// command `timestamp` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
 			var (
@@ -2259,66 +2252,42 @@ var (
 			}
 
 		},
-		//"ticket": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		//	ChannelLog(fmt.Sprintf("/// command `ticket` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
-		//	var (
-		//		err                  error
-		//		title                string
-		//		msgData              *discordgo.MessageSend = new(discordgo.MessageSend)
-		//		dmChannel            *discordgo.Channel     = new(discordgo.Channel)
-		//		channelData          discordgo.GuildChannelCreateData
-		//		channelOverridesAll  discordgo.PermissionOverwrite
-		//		channelOverridesMods discordgo.PermissionOverwrite
-		//		//PermissionOverwrites []*discordgo.PermissionOverwrite
-		//	)
-		//
-		//	options := i.ApplicationCommandData().Options
-		//	optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
-		//	for _, opt := range options {
-		//		optionMap[opt.Name] = opt
-		//	}
-		//	if option, ok := optionMap["title"]; ok {
-		//		title = option.StringValue()
-		//		ChannelLog(fmt.Sprintf("Title set to %v", title))
-		//	}
-		//
-		//	msgData.Content = fmt.Sprintf("This is a test response. The title you entered was: %v", title)
-		//	dmChannel, err = s.UserChannelCreate(i.Member.User.ID)
-		//	if err != nil {
-		//		ChannelLog(fmt.Sprintf("Could not create DM channel: %v", err))
-		//	}
-		//
-		//	_, err = s.ChannelMessageSendComplex(dmChannel.ID, msgData)
-		//	if err != nil {
-		//		ChannelLog(fmt.Sprintf("An error occurred sending DM: %v", err))
-		//	}
-		//
-		//	err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		//		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		//		Data: &discordgo.InteractionResponseData{
-		//			Content: fmt.Sprintf("Check your DMs!"),
-		//			Flags:   discordgo.MessageFlagsEphemeral,
-		//		},
-		//	})
-		//
-		//	channelOverridesAll.ID = i.GuildID
-		//	channelOverridesAll.Type = discordgo.PermissionOverwriteTypeRole
-		//	channelOverridesAll.Deny = 0x0000000000000400
-		//
-		//	channelOverridesMods.ID = "785469547587174421"
-		//	channelOverridesMods.Type = discordgo.PermissionOverwriteTypeRole
-		//	channelOverridesMods.Allow = 0x0000000000000400
-		//
-		//	channelData.Name = fmt.Sprintf("%v-%v", title, i.Member.User.Username)
-		//	channelData.Type = discordgo.ChannelTypeGuildText
-		//	channelData.PermissionOverwrites = []*discordgo.PermissionOverwrite{&channelOverridesAll, &channelOverridesMods}
-		//	channelData.ParentID = "1101425457569730590"
-		//
-		//	s.GuildChannelCreateComplex(i.GuildID, channelData)
-		//	if err != nil {
-		//		return
-		//	}
-		//},
+		"fancytext": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			ChannelLog(fmt.Sprintf("/// command `fancytext` used by %v#%v (%v) in server %v", i.Member.User.Username, i.Member.User.Discriminator, i.Member.User.ID, i.GuildID))
+
+			var (
+				text     string
+				fontface string
+			)
+
+			options := i.ApplicationCommandData().Options
+			optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
+			for _, opt := range options {
+				optionMap[opt.Name] = opt
+			}
+			if option, ok := optionMap["text"]; ok {
+				text = option.StringValue()
+				ChannelLog(fmt.Sprintf("Input Text: %v", text))
+			}
+			if option2, ok := optionMap["fontface"]; ok {
+				fontface = option2.StringValue()
+				fmt.Println(fontface)
+
+				ChannelLog(fmt.Sprintf("Selected Font Face: %v", fontface))
+			}
+			if fontface == "" { // for the love of god make this less terrible
+				fontface = strconv.FormatInt(int64(rand.Intn(25)), 10) + "| "
+				fmt.Println(fontface)
+			}
+			fancifiedText := EviFancyText(text, fontface)
+
+			_ = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: fancifiedText,
+				},
+			})
+		},
 	}
 )
 
@@ -2332,7 +2301,7 @@ func main() {
 		log.Fatalf("Cannot open the session: %v", err)
 	}
 	s.UpdateStatusComplex(discordgo.UpdateStatusData{
-		Activities: []*discordgo.Activity{{Type: 3, Name: "over the Den // " + buildstring}},
+		Activities: []*discordgo.Activity{{Type: 3, Name: "over the Den"}},
 	})
 
 	log.Println("Adding commands...")
