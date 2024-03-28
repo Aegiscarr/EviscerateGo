@@ -3,6 +3,7 @@
 *.exe
 *token.txt
 token-dev.txt
+logchanid.txt
 audio
 .dockerignore
 Dockerfile

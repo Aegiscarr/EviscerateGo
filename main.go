@@ -57,6 +57,7 @@ var (
 	CumulonimbusToken = flag.String("cumulonimbus-token", "", "Cumulonimbus Token")
 	RapidSzToken      = flag.String("rapid-sz-token", "", "RapidSz Token")
 	UnsplashToken     = flag.String("unsplash-token", "", "Unsplash token")
+	LogChannelId      = flag.String("logchanid", "", "Logging Channel ID")
 )
 
 var (
@@ -116,6 +117,13 @@ func init() {
 	} else {
 		log.Println("Token not read from file, fetching from env")
 		*UnsplashToken = os.Getenv("UNSPLASH_TOKEN")
+	}
+	*LogChannelId = ReadTokenFromFile("logchanid.txt")
+	if *LogChannelId != "" {
+		log.Println("Log channel ID read from file")
+	} else {
+		log.Println("Token not read from file, fetching from env")
+		*UnsplashToken = os.Getenv("LOG_CHAN_ID")
 	}
 
 	EviInitFTReplacers()
@@ -2370,7 +2378,7 @@ func GetDevExcuse() *RandomDevExcuse {
 func ChannelLog(logInput string) {
 	fmt.Println(logInput)
 
-	_, err := s.ChannelMessageSendComplex("1087401958173847552", &discordgo.MessageSend{
+	_, err := s.ChannelMessageSendComplex(*LogChannelId, &discordgo.MessageSend{
 		Content: logInput,
 	})
 	if err != nil {
