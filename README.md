@@ -1,7 +1,6 @@
-# Eviscerate The Synth
-*i'll get a logo for this dingus someday, i swear*\
-Discord bot I'm developing as a long term "get good at problem solving and golang" project
 
+![evilogo](https://github.com/user-attachments/assets/fc64921c-afaa-415f-bab2-c5c14b4e342c)
+---
 #### *Setup*
 ##### REQUIREMENTS
 - [Go 1.19.2](https://go.dev/dl) or higher
