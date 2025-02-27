@@ -1,6 +1,7 @@
 package main
 
 import (
+	"EviscerateGo/auxiliary/presence"
 	"flag"
 	"log"
 	"os"
@@ -48,15 +49,17 @@ func main() {
 
 	defer k.Unregister()
 
+	session.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
+		log.Printf("Logged in as: %v#%v", s.State.User.Username, s.State.User.Discriminator)
+	})
+
 	must(session.Open())
+	must(presence.SetStatusOnLaunch(session))
 
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 	<-sc
 
-	session.UpdateStatusComplex(discordgo.UpdateStatusData{
-		Activities: []*discordgo.Activity{{Type: 3, Name: "over the Den // " + buildstring}},
-	})
 }
 
 func ReadTokenFromFile(file string) string {
