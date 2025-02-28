@@ -1,4 +1,4 @@
-package cmds
+package cmdsServer
 
 import (
 	"github.com/bwmarrin/discordgo"

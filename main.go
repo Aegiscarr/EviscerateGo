@@ -2,7 +2,8 @@ package main
 
 import (
 	"EviscerateGo/auxiliary/presence"
-	"EviscerateGo/cmds"
+	cmdsServer "EviscerateGo/cmds/server"
+
 	"flag"
 	"log"
 	"os"
@@ -21,7 +22,6 @@ func must(err error) {
 }
 
 var BotToken = flag.String("token", "", "Bot token")
-var buildstring = "b20250227-ken"
 
 func main() {
 
@@ -45,7 +45,12 @@ func main() {
 	})
 	must(err)
 
-	must(k.RegisterCommands(new(cmds.TestCommand)))
+	must(k.RegisterCommands(
+		new(cmdsServer.TestCommand),
+		new(cmdsServer.PingCommand),
+		new(cmdsServer.DevExcuse),
+	),
+	)
 
 	defer k.Unregister()
 
@@ -57,7 +62,7 @@ func main() {
 	must(presence.SetStatusOnLaunch(session))
 
 	sc := make(chan os.Signal, 1)
-	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
+	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
 
 }
