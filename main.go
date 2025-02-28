@@ -2,6 +2,7 @@ package main
 
 import (
 	"EviscerateGo/auxiliary/presence"
+	"EviscerateGo/cmds"
 	"flag"
 	"log"
 	"os"
@@ -10,7 +11,6 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/zekrotja/ken"
-	"github.com/zekrotja/ken/examples/basic/commands"
 	"github.com/zekrotja/ken/store"
 )
 
@@ -45,7 +45,7 @@ func main() {
 	})
 	must(err)
 
-	must(k.RegisterCommands(new(commands.TestCommand)))
+	must(k.RegisterCommands(new(cmds.TestCommand)))
 
 	defer k.Unregister()
 
