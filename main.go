@@ -49,6 +49,7 @@ func main() {
 		new(cmdsServer.TestCommand),
 		new(cmdsServer.PingCommand),
 		new(cmdsServer.DevExcuse),
+		new(cmdsServer.PkeCommand),
 	),
 	)
 

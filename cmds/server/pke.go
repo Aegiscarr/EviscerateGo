@@ -34,3 +34,23 @@ func (c *PkeCommand) Type() discordgo.ApplicationCommandType {
 func (c *PkeCommand) Options() []*discordgo.ApplicationCommandOption {
 	return []*discordgo.ApplicationCommandOption{}
 }
+
+func (c *PkeCommand) IsDmCapable() bool {
+	return false
+}
+
+func (c *PkeCommand) Run(ctx ken.Context) (err error) {
+	err = ctx.Respond(&discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Embeds: []*discordgo.MessageEmbed{
+				{
+					Title:       "Why does that person have the [APP] tag?",
+					Color:       0x8c1bb1,
+					Description: "This server is bridged to decentralised chat platform Matrix using a bot. Due to Discord limitations, Matrix users show up with the [APP] tag on the Discord side.",
+				},
+			},
+		},
+	})
+	return
+}
