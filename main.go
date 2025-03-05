@@ -54,6 +54,7 @@ func main() {
 		new(cmdsServer.ColorCommand),
 		new(cmdsServer.D20Command),
 		new(cmdsServer.EchoCommand),
+		new(cmdsServer.EightBallCommand),
 	),
 	)
 
