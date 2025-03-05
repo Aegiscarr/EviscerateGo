@@ -52,6 +52,7 @@ func main() {
 		new(cmdsServer.PkeCommand),
 		new(cmdsServer.RandomColor),
 		new(cmdsServer.ColorCommand),
+		new(cmdsServer.D20Command),
 	),
 	)
 
