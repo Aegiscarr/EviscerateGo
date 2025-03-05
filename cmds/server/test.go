@@ -5,7 +5,8 @@ import (
 	"github.com/zekrotja/ken"
 )
 
-type TestCommand struct{}
+type TestCommand struct {
+}
 
 var (
 	_ ken.SlashCommand = (*TestCommand)(nil)

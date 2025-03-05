@@ -2,7 +2,7 @@ package presence
 
 import "github.com/bwmarrin/discordgo"
 
-var buildstring string = "b250228-ken"
+var buildstring string = "b250305-ken"
 var err error
 
 func SetStatusOnLaunch(s *discordgo.Session) error {

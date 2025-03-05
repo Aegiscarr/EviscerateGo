@@ -51,6 +51,7 @@ func main() {
 		new(cmdsServer.DevExcuse),
 		new(cmdsServer.PkeCommand),
 		new(cmdsServer.RandomColor),
+		new(cmdsServer.ColorCommand),
 	),
 	)
 
