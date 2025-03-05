@@ -99,14 +99,14 @@ func (c *ColorCommand) Run(ctx ken.Context) (err error) {
 
 		fmt.Sscanf(colInTrunc, "%s %s %s", &colSepRed, &colSepGreen, &colSepBlue)
 		// string to int
-		colSepRedInt, res = strconv.Atoi(colSepRed)
-		colSepGreenInt, res = strconv.Atoi(colSepGreen)
-		colSepBlueInt, res = strconv.Atoi(colSepBlue)
+		colSepRedInt, _ = strconv.Atoi(colSepRed)
+		colSepGreenInt, _ = strconv.Atoi(colSepGreen)
+		colSepBlueInt, _ = strconv.Atoi(colSepBlue)
 
 		// int to float64
-		colSepRedF64, res = strconv.ParseFloat(strconv.Itoa(colSepRedInt), 64)
-		colSepGreenF64, res = strconv.ParseFloat(strconv.Itoa(colSepGreenInt), 64)
-		colSepBlueF64, res = strconv.ParseFloat(strconv.Itoa(colSepBlueInt), 64)
+		colSepRedF64, _ = strconv.ParseFloat(strconv.Itoa(colSepRedInt), 64)
+		colSepGreenF64, _ = strconv.ParseFloat(strconv.Itoa(colSepGreenInt), 64)
+		colSepBlueF64, _ = strconv.ParseFloat(strconv.Itoa(colSepBlueInt), 64)
 		colorfulColor.R = colSepRedF64 / 255
 		colorfulColor.G = colSepGreenF64 / 255
 		colorfulColor.B = colSepBlueF64 / 255
@@ -121,9 +121,9 @@ func (c *ColorCommand) Run(ctx ken.Context) (err error) {
 
 		fmt.Sscanf(colInTrunc, "%s %s %s", &colSepHue, &colSepSat, &colSepVal)
 
-		colSepHueF64, res = strconv.ParseFloat(colSepHue, 64)
-		colSepSatF64, res = strconv.ParseFloat(colSepSat, 64)
-		colSepValF64, res = strconv.ParseFloat(colSepVal, 64)
+		colSepHueF64, _ = strconv.ParseFloat(colSepHue, 64)
+		colSepSatF64, _ = strconv.ParseFloat(colSepSat, 64)
+		colSepValF64, _ = strconv.ParseFloat(colSepVal, 64)
 		if colSepSatF64 > 1 {
 			colSepSatF64 = colSepSatF64 / 100
 		}
