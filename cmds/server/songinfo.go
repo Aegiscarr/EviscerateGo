@@ -72,7 +72,7 @@ func (c *SongInfoCommand) Run(ctx ken.Context) (err error) {
 	s := ctx.GetSession()
 	i := ctx.GetEvent()
 
-	err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+	err = ctx.Respond(&discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Content: "song lookup in progress",

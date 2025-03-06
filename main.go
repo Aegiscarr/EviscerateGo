@@ -24,9 +24,8 @@ func must(err error) {
 func main() {
 
 	tokens.GetBotToken()
-	//fmt.Println(tokens.BotToken)
 	tokens.GetRapidApiToken()
-	//fmt.Println(tokens.RapidSzToken)
+	tokens.GetUploaderToken()
 
 	session, err := discordgo.New("Bot " + tokens.BotToken)
 	if err != nil {
@@ -51,6 +50,7 @@ func main() {
 		new(cmdsServer.EightBallCommand),
 		new(cmdsServer.SongInfoCommand),
 		new(cmdsServer.GoogleCommand),
+		new(cmdsServer.MagickCommand),
 	),
 	)
 
