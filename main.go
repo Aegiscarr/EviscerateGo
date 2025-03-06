@@ -50,6 +50,7 @@ func main() {
 		new(cmdsServer.EchoCommand),
 		new(cmdsServer.EightBallCommand),
 		new(cmdsServer.SongInfoCommand),
+		new(cmdsServer.GoogleCommand),
 	),
 	)
 
