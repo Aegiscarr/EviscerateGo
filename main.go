@@ -2,9 +2,9 @@ package main
 
 import (
 	"EviscerateGo/auxiliary/presence"
+	tokens "EviscerateGo/auxiliary/tokens"
 	cmdsServer "EviscerateGo/cmds/server"
 
-	"flag"
 	"log"
 	"os"
 	"os/signal"
@@ -21,20 +21,14 @@ func must(err error) {
 	}
 }
 
-var BotToken = flag.String("token", "", "Bot token")
-
 func main() {
 
-	*BotToken = ReadTokenFromFile("token-dev.txt")
-	//*BotToken = ReadTokenFromFile("token.txt")
-	if *BotToken != "" {
-		log.Println("Token read from file")
-	} else {
-		log.Println("Token not read from file, fetching from env")
-		*BotToken = os.Getenv("TOKEN")
-	}
+	tokens.GetBotToken()
+	//fmt.Println(tokens.BotToken)
+	tokens.GetRapidApiToken()
+	//fmt.Println(tokens.RapidSzToken)
 
-	session, err := discordgo.New("Bot " + *BotToken)
+	session, err := discordgo.New("Bot " + tokens.BotToken)
 	if err != nil {
 		panic(err)
 	}
@@ -55,6 +49,7 @@ func main() {
 		new(cmdsServer.D20Command),
 		new(cmdsServer.EchoCommand),
 		new(cmdsServer.EightBallCommand),
+		new(cmdsServer.SongInfoCommand),
 	),
 	)
 
@@ -71,23 +66,4 @@ func main() {
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
 
-}
-
-func ReadTokenFromFile(file string) string {
-	f, err := os.Open(file)
-	if err != nil {
-		return ""
-	}
-	defer func(f *os.File) {
-		err := f.Close()
-		if err != nil {
-		}
-	}(f)
-	buf := make([]byte, 1024)
-	n, err := f.Read(buf)
-	if err != nil {
-
-	}
-	buf = buf[:n]
-	return string(buf)
 }
