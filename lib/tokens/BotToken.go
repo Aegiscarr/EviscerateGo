@@ -8,7 +8,7 @@ import (
 var BotToken string
 
 func GetBotToken() {
-	BotToken = ReadTokenFromFile("cfg/tokens/token-dev.txt")
+	BotToken = ReadTokenFromFile("cfg/tokens/token.txt")
 
 	if BotToken != "" {
 		log.Println("Token read from file")
