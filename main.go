@@ -4,6 +4,7 @@ import (
 	cmdsServer "EviscerateGo/cmds/server"
 	"EviscerateGo/lib/presence"
 	"EviscerateGo/lib/tokens"
+	"EviscerateGo/lib/txt"
 
 	"log"
 	"os"
@@ -23,6 +24,7 @@ func must(err error) {
 
 func main() {
 
+	txt.InitFTReplacers()
 	tokens.GetBotToken()
 	tokens.GetRapidApiToken()
 	tokens.GetUploaderToken()
@@ -53,6 +55,7 @@ func main() {
 		new(cmdsServer.GoogleCommand),
 		new(cmdsServer.MagickCommand),
 		new(cmdsServer.UnsplashCommand),
+		new(cmdsServer.FancyTextCommand),
 	),
 	)
 
