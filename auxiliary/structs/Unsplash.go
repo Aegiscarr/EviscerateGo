@@ -1,6 +1,6 @@
 package structs
 
-type UnsplashResponse struct {
+type UnsplashRandom struct {
 	ID          string `json:"id"`
 	CreatedAt   string `json:"created_at"`
 	UpdatedAt   string `json:"updated_at"`

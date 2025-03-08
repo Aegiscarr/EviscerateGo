@@ -26,6 +26,7 @@ func main() {
 	tokens.GetBotToken()
 	tokens.GetRapidApiToken()
 	tokens.GetUploaderToken()
+	tokens.GetUnsplashToken()
 
 	session, err := discordgo.New("Bot " + tokens.BotToken)
 	if err != nil {
@@ -51,6 +52,7 @@ func main() {
 		new(cmdsServer.SongInfoCommand),
 		new(cmdsServer.GoogleCommand),
 		new(cmdsServer.MagickCommand),
+		new(cmdsServer.UnsplashCommand),
 	),
 	)
 
