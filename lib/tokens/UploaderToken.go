@@ -8,7 +8,7 @@ import (
 var UploaderToken string
 
 func GetUploaderToken() {
-	UploaderToken = ReadTokenFromFile("uploader-token.txt")
+	UploaderToken = ReadTokenFromFile("cfg/tokens/uploader-token.txt")
 
 	if UploaderToken != "" {
 		log.Println("Uploader Token read from file")

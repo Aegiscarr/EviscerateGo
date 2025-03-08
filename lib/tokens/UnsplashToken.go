@@ -8,7 +8,7 @@ import (
 var UnsplashToken string
 
 func GetUnsplashToken() {
-	UnsplashToken = ReadTokenFromFile("unsplash-token.txt")
+	UnsplashToken = ReadTokenFromFile("cfg/tokens/unsplash-token.txt")
 
 	if UnsplashToken != "" {
 		log.Println("Unsplash Token read from file")

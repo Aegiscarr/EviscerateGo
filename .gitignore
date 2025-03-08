@@ -14,3 +14,5 @@ db
 *.exe~
 .commandCache.json
 reimpl.txt
+
+cfg

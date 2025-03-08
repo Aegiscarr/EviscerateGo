@@ -1,7 +1,9 @@
 package main
 
 import (
+	cmdsAdmin "EviscerateGo/cmds/admin"
 	cmdsServer "EviscerateGo/cmds/server"
+	"EviscerateGo/lib/conf"
 	"EviscerateGo/lib/presence"
 	"EviscerateGo/lib/tokens"
 	"EviscerateGo/lib/txt"
@@ -24,6 +26,7 @@ func must(err error) {
 
 func main() {
 
+	conf.GetAdminId()
 	txt.InitFTReplacers()
 	tokens.GetBotToken()
 	tokens.GetRapidApiToken()
@@ -42,7 +45,6 @@ func main() {
 	must(err)
 
 	must(k.RegisterCommands(
-		new(cmdsServer.TestCommand),
 		new(cmdsServer.PingCommand),
 		new(cmdsServer.DevExcuse),
 		new(cmdsServer.PkeCommand),
@@ -57,6 +59,8 @@ func main() {
 		new(cmdsServer.UnsplashCommand),
 		new(cmdsServer.FancyTextCommand),
 		new(cmdsServer.TimestampCommand),
+
+		new(cmdsAdmin.StatusSetCommand),
 	),
 	)
 

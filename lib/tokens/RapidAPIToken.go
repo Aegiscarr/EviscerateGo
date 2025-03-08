@@ -8,7 +8,7 @@ import (
 var RapidSzToken string
 
 func GetRapidApiToken() {
-	RapidSzToken = ReadTokenFromFile("rapid-sz-token.txt")
+	RapidSzToken = ReadTokenFromFile("cfg/tokens/rapid-sz-token.txt")
 
 	if RapidSzToken != "" {
 		log.Println("RapidAPI Token read from file")
