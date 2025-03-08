@@ -56,6 +56,7 @@ func main() {
 		new(cmdsServer.MagickCommand),
 		new(cmdsServer.UnsplashCommand),
 		new(cmdsServer.FancyTextCommand),
+		new(cmdsServer.TimestampCommand),
 	),
 	)
 
