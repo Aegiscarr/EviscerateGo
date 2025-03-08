@@ -1,8 +1,8 @@
 package cmdsServer
 
 import (
-	"EviscerateGo/auxiliary/structs"
-	"EviscerateGo/auxiliary/tokens"
+	"EviscerateGo/lib/structs"
+	"EviscerateGo/lib/tokens"
 	"bytes"
 	"encoding/json"
 	"fmt"

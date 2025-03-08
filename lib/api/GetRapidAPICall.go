@@ -1,8 +1,8 @@
 package api
 
 import (
-	"EviscerateGo/auxiliary/structs"
-	"EviscerateGo/auxiliary/tokens"
+	"EviscerateGo/lib/structs"
+	"EviscerateGo/lib/tokens"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -33,7 +33,7 @@ func GetRapidAPICall(parsedQ string, typeQ string, RapidSzToken string) *structs
 	}
 
 	defer res.Body.Close()
-	body, err := io.ReadAll(res.Body)
+	body, _ := io.ReadAll(res.Body)
 	//fmt.Println(string(body))
 	fmt.Println(json.Valid(body))
 	fmt.Println(json.Unmarshal(body, &szresponse))

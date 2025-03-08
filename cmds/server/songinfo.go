@@ -1,9 +1,9 @@
 package cmdsServer
 
 import (
-	"EviscerateGo/auxiliary/api"
-	"EviscerateGo/auxiliary/structs"
-	"EviscerateGo/auxiliary/tokens"
+	"EviscerateGo/lib/api"
+	"EviscerateGo/lib/structs"
+	"EviscerateGo/lib/tokens"
 	"fmt"
 	"image/jpeg"
 	"os"
@@ -72,7 +72,7 @@ func (c *SongInfoCommand) Run(ctx ken.Context) (err error) {
 	s := ctx.GetSession()
 	i := ctx.GetEvent()
 
-	err = ctx.Respond(&discordgo.InteractionResponse{
+	_ = ctx.Respond(&discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Content: "song lookup in progress",
@@ -92,7 +92,7 @@ func (c *SongInfoCommand) Run(ctx ken.Context) (err error) {
 			},
 		})
 		if err != nil {
-			fmt.Sprintf("An error occurred while sending failure response: %v", err)
+			fmt.Printf("An error occurred while sending failure response: %v", err)
 		}
 	} else {
 		parsedURL := "https://open.spotify.com/track/" + songdata.Tracks.Items[0].Data.ID
@@ -100,28 +100,28 @@ func (c *SongInfoCommand) Run(ctx ken.Context) (err error) {
 
 		for _, artistName := range songdata.Tracks.Items[0].Data.Artists.Items {
 			artistString = artistString + ", [" + artistName.Profile.Name + "](https://open.spotify.com/artist/" + strings.ReplaceAll(artistName.URI, "spotify:artist:", "") + ")"
-			fmt.Sprintf(artistString)
+			fmt.Println(artistString)
 		}
 
 		artistString = strings.Replace(artistString, ", ", "", 1)
 
-		resp, err := grab.Get(".", songdata.Tracks.Items[0].Data.AlbumOfTrack.CoverArt.Sources[2].URL)
-		fmt.Sprintf("Download saved to %v", resp.Filename)
+		resp, _ := grab.Get(".", songdata.Tracks.Items[0].Data.AlbumOfTrack.CoverArt.Sources[2].URL)
+		fmt.Printf("Download saved to %v", resp.Filename)
 		file := resp.Filename
-		f, err := os.Open(file)
-		src, err := jpeg.Decode(f)
-		avgcol, err := prominentcolor.Kmeans(src)
-		fmt.Sprintf("%v %v %v", avgcol[0].Color.R, avgcol[0].Color.G, avgcol[0].Color.B)
+		f, _ := os.Open(file)
+		src, _ := jpeg.Decode(f)
+		avgcol, _ := prominentcolor.Kmeans(src)
+		fmt.Printf("%v %v %v", avgcol[0].Color.R, avgcol[0].Color.G, avgcol[0].Color.B)
 
 		// COLOR CONVERSION YAAAAAAAAAAAAAAAAAAAAAAAAA
-		avgColRInt, err := strconv.ParseInt(strconv.FormatUint(uint64(avgcol[0].Color.R), 10), 10, 64)
-		avgColR, err := strconv.ParseFloat(strconv.Itoa(int(avgColRInt)), 64)
+		avgColRInt, _ := strconv.ParseInt(strconv.FormatUint(uint64(avgcol[0].Color.R), 10), 10, 64)
+		avgColR, _ := strconv.ParseFloat(strconv.Itoa(int(avgColRInt)), 64)
 
-		avgColGInt, err := strconv.ParseInt(strconv.FormatUint(uint64(avgcol[0].Color.G), 10), 10, 64)
-		avgColG, err := strconv.ParseFloat(strconv.Itoa(int(avgColGInt)), 64)
+		avgColGInt, _ := strconv.ParseInt(strconv.FormatUint(uint64(avgcol[0].Color.G), 10), 10, 64)
+		avgColG, _ := strconv.ParseFloat(strconv.Itoa(int(avgColGInt)), 64)
 
-		avgColBInt, err := strconv.ParseInt(strconv.FormatUint(uint64(avgcol[0].Color.B), 10), 10, 64)
-		avgColB, err := strconv.ParseFloat(strconv.Itoa(int(avgColBInt)), 64)
+		avgColBInt, _ := strconv.ParseInt(strconv.FormatUint(uint64(avgcol[0].Color.B), 10), 10, 64)
+		avgColB, _ := strconv.ParseFloat(strconv.Itoa(int(avgColBInt)), 64)
 
 		avgColRDiv := avgColR / 255
 		avgColGDiv := avgColG / 255
@@ -131,11 +131,11 @@ func (c *SongInfoCommand) Run(ctx ken.Context) (err error) {
 		colorfulCol.G = avgColGDiv
 		colorfulCol.B = avgColBDiv
 
-		hexcol, err := strconv.ParseInt(strings.ReplaceAll(colorfulCol.Hex(), "#", ""), 16, 64)
+		hexcol, _ := strconv.ParseInt(strings.ReplaceAll(colorfulCol.Hex(), "#", ""), 16, 64)
 
 		err = os.Remove(file)
 		if err != nil {
-			fmt.Sprintf("An error occurred during file deletion: %v", err)
+			fmt.Printf("An error occurred during file deletion: %v", err)
 		}
 		sDuration = int64(songdata.Tracks.Items[0].Data.Duration.TotalMilliseconds)
 		t = time.UnixMilli(sDuration)

@@ -1,9 +1,9 @@
 package main
 
 import (
-	"EviscerateGo/auxiliary/presence"
-	tokens "EviscerateGo/auxiliary/tokens"
 	cmdsServer "EviscerateGo/cmds/server"
+	"EviscerateGo/lib/presence"
+	"EviscerateGo/lib/tokens"
 
 	"log"
 	"os"

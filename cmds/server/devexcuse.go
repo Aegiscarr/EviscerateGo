@@ -1,7 +1,7 @@
 package cmdsServer
 
 import (
-	"EviscerateGo/auxiliary/api"
+	"EviscerateGo/lib/api"
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"

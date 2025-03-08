@@ -1,7 +1,7 @@
 package api
 
 import (
-	"EviscerateGo/auxiliary/structs"
+	"EviscerateGo/lib/structs"
 	"fmt"
 
 	"encoding/json"
@@ -23,6 +23,7 @@ func GetDevExcuse() *structs.RandomDevExcuse {
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {
+			return
 		}
 	}(resp.Body)
 	return randomexcuse
