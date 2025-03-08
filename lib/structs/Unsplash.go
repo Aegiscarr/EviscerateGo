@@ -1,11 +1,4 @@
-package main
-
-import (
-	"encoding/json"
-	"fmt"
-	"io"
-	"net/http"
-)
+package structs
 
 type UnsplashRandom struct {
 	ID          string `json:"id"`
@@ -46,27 +39,4 @@ type UnsplashRandom struct {
 
 type UnsplashDownloadLoc struct {
 	URL string `json:"url"`
-}
-
-func UnsplashImageFromApi(query string) *UnsplashRandom {
-	resp, err := http.Get(fmt.Sprintf("https://api.unsplash.com/photos/random?query=%v&client_id=%v", query, *UnsplashToken))
-	if err != nil {
-		ChannelLog(fmt.Sprintf("An Error Occured %v", err))
-	}
-
-	var unsplash *UnsplashRandom
-
-	err = json.NewDecoder(resp.Body).Decode(&unsplash)
-	if err != nil {
-		var invalid *UnsplashRandom
-		return invalid
-	}
-
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-
-		}
-	}(resp.Body)
-	return unsplash
 }

@@ -1,4 +1,4 @@
-package main
+package structs
 
 type CumulonimbusResponse struct {
 	URL       string

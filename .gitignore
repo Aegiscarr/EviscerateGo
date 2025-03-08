@@ -12,3 +12,7 @@ docker-compose.*
 accentcol.go
 db
 *.exe~
+.commandCache.json
+reimpl.txt
+
+cfg
