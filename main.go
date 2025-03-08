@@ -59,6 +59,7 @@ func main() {
 		new(cmdsServer.UnsplashCommand),
 		new(cmdsServer.FancyTextCommand),
 		new(cmdsServer.TimestampCommand),
+		new(cmdsServer.UserInfoCommand),
 
 		new(cmdsAdmin.StatusSetCommand),
 	),
