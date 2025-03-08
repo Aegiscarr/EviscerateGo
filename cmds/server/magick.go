@@ -1,6 +1,7 @@
 package cmdsServer
 
 import (
+	"EviscerateGo/lib/color"
 	"EviscerateGo/lib/structs"
 	"EviscerateGo/lib/tokens"
 	"bytes"
@@ -16,13 +17,11 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
 
+	"github.com/EdlinOrg/prominentcolor"
 	"github.com/bwmarrin/discordgo"
 	"github.com/cavaliergopher/grab/v3"
 	"github.com/disintegration/gift"
-	"github.com/lucasb-eyer/go-colorful"
 	"github.com/zekrotja/ken"
 	"golang.org/x/image/webp"
 )
@@ -119,7 +118,6 @@ func (c *MagickCommand) Run(ctx ken.Context) (err error) {
 		execPath       string
 		imagePath      string
 		uploadResponse structs.CumulonimbusResponse
-		colorfulCol    colorful.Color
 		intensity      float32
 	)
 
@@ -301,34 +299,16 @@ func (c *MagickCommand) Run(ctx ken.Context) (err error) {
 		g.Draw(dst, src)
 	}
 
-	//avgcol, err := prominentcolor.Kmeans(dst)
-	//fmt.Printf("%v %v %v", avgcol[0].Color.R, avgcol[0].Color.G, avgcol[0].Color.B)
+	avgcol, err := prominentcolor.Kmeans(dst)
+	fmt.Printf("%v %v %v", avgcol[0].Color.R, avgcol[0].Color.G, avgcol[0].Color.B)
 
-	// COLOR CONVERSION YAAAAAAAAAAAAAAAAAAAAAAAAA
-	//	avgColRInt, err := strconv.ParseInt(strconv.FormatUint(uint64(avgcol[0].Color.R), 10), 10, 64)
-	//	avgColR, err := strconv.ParseFloat(strconv.Itoa(int(avgColRInt)), 64)
-	//
-	//	avgColGInt, err := strconv.ParseInt(strconv.FormatUint(uint64(avgcol[0].Color.G), 10), 10, 64)
-	//	avgColG, err := strconv.ParseFloat(strconv.Itoa(int(avgColGInt)), 64)
-	//
-	//	avgColBInt, err := strconv.ParseInt(strconv.FormatUint(uint64(avgcol[0].Color.B), 10), 10, 64)
-	//	avgColB, err := strconv.ParseFloat(strconv.Itoa(int(avgColBInt)), 64)
-	//
-	//	avgColRDiv := avgColR / 255
-	//	avgColGDiv := avgColG / 255
-	//	avgColBDiv := avgColB / 255
-	//
-	//	colorfulCol.R = avgColRDiv
-	//	colorfulCol.G = avgColGDiv
-	//	colorfulCol.B = avgColBDiv
+	hexcol := color.ConvertColorInt64(avgcol)
 
 	fEdit, err = os.Create("image.png")
 	if err != nil {
 		//ChannelLog(fmt.Sprintf("error while creating image file: %v", err))
 	}
 	png.Encode(fEdit, dst)
-
-	hexcol, err := strconv.ParseInt(strings.ReplaceAll(colorfulCol.Hex(), "#", ""), 16, 64)
 
 	imagePath = execFolder + "\\image.png"
 	//ChannelLog(fmt.Sprintf(imagePath))
@@ -382,7 +362,7 @@ func (c *MagickCommand) Run(ctx ken.Context) (err error) {
 		Embeds: &[]*discordgo.MessageEmbed{
 			{
 				Title: "Here's the edited image!",
-				Color: 0x000000, //int(hexcol),
+				Color: int(hexcol),
 				Image: &discordgo.MessageEmbedImage{
 					URL: uploadResponse.URL,
 				},
