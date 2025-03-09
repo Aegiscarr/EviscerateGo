@@ -57,10 +57,10 @@ func (c *D20Command) Run(ctx ken.Context) (err error) {
 	dicerolls := [20]string{`Luck really isn't on your side today, huh? It's a 1.`, `A 2. Couldn't have been much worse.`, `It's a tree!- Oh, wait. A 3.`, `A four-se. Of course. That didn't work, did it?`, `A 5. Nothing funny here.`, `A 6. The devil, anyone?`, `Lucky number 7! Now can you get two more?`, `8, not bad.`, `Just under halfway up. A 9`, `A 10! Halfway up the scale!`, `11. Decent.`, `12. Could have been much worse. Could've also been better, though.`, `13. Feelin' lucky?`, `Aand it's come up 14!`, `15! Getting up there!`, `16, solid.`, `17. Rolling real high now, aren't you?`, `18! You're old eno- wait this isn't a birthday.`, `19! So CLOSE!`, `NAT 20 BAYBEE!`}
 
 	if rolledFor == "" {
-		rolledFor = "no thing"
+		rolledFor = "nothing"
 	}
 
-	u := ctx.GetEvent().User.Username
+	u := ctx.User().Username
 
 	rand.Seed(time.Now().UnixNano())
 
