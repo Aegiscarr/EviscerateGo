@@ -80,11 +80,14 @@ func (c *StatusSetCommand) Run(ctx ken.Context) (err error) {
 	var (
 		actType   int
 		actString string
+		adminId   string
 	)
+
+	adminId = conf.AdminId
 
 	s := ctx.GetSession()
 
-	if ctx.User().ID == conf.AdminId {
+	if ctx.User().ID == adminId {
 		actType = int(ctx.Options().GetByName("type").IntValue())
 		actString = ctx.Options().GetByName("string").StringValue()
 		s.UpdateStatusComplex(discordgo.UpdateStatusData{

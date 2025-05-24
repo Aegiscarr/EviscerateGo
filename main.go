@@ -7,6 +7,7 @@ import (
 	"EviscerateGo/lib/presence"
 	"EviscerateGo/lib/tokens"
 	"EviscerateGo/lib/txt"
+	"fmt"
 
 	"log"
 	"os"
@@ -20,7 +21,7 @@ import (
 
 func must(err error) {
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
 	}
 }
 
@@ -44,7 +45,7 @@ func main() {
 	})
 	must(err)
 
-	must(k.RegisterCommands(
+	err = k.RegisterCommands(
 		new(cmdsServer.PingCommand),
 		new(cmdsServer.DevExcuse),
 		new(cmdsServer.PkeCommand),
@@ -62,8 +63,10 @@ func main() {
 		new(cmdsServer.UserInfoCommand),
 
 		new(cmdsAdmin.StatusSetCommand),
-	),
 	)
+	if err != nil {
+		return
+	}
 
 	defer k.Unregister()
 
