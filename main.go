@@ -8,6 +8,7 @@ import (
 	"EviscerateGo/lib/tokens"
 	"EviscerateGo/lib/txt"
 	"fmt"
+	"runtime"
 
 	"log"
 	"os"
@@ -33,6 +34,12 @@ func main() {
 	tokens.GetRapidApiToken()
 	tokens.GetUploaderToken()
 	tokens.GetUnsplashToken()
+
+	if runtime.GOOS == "windows" {
+		fmt.Println("GOOS: Windows")
+	} else {
+		fmt.Println("GOOS: Linux/UNIX")
+	}
 
 	session, err := discordgo.New("Bot " + tokens.BotToken)
 	if err != nil {

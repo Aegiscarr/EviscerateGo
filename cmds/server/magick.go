@@ -17,6 +17,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/EdlinOrg/prominentcolor"
 	"github.com/bwmarrin/discordgo"
@@ -119,6 +120,7 @@ func (c *MagickCommand) Run(ctx ken.Context) (err error) {
 		imagePath      string
 		uploadResponse structs.CumulonimbusResponse
 		intensity      float32
+		bytesRead      int
 	)
 
 	s := ctx.GetSession()
@@ -154,25 +156,25 @@ func (c *MagickCommand) Run(ctx ken.Context) (err error) {
 		})
 
 		if err != nil {
-			//ChannelLog(fmt.Sprintf("an error occurred while sending embed update: %v", err))
+			fmt.Printf("an error occurred while sending embed update: %v", err)
 		}
 	}
 
-	//ChannelLog(fmt.Sprintf("Download saved to %v ", resp.Filename))
+	fmt.Printf("Download saved to %v ", resp.Filename)
 	file := resp.Filename
 	buf := make([]byte, 512)
 
 	openFile, err := os.Open(file)
 	if err != nil {
-		//ChannelLog(fmt.Sprintf("An error occurred during file read: %v", err))
+		fmt.Printf("An error occurred during file read: %v", err)
 	}
-	_, err = openFile.Read(buf)
-	//ChannelLog(fmt.Sprintf("bytes read: `%v`", n))
+	bytesRead, err = openFile.Read(buf)
+	fmt.Printf("bytes read: `%v`", bytesRead)
 	if err != nil {
-		//ChannelLog(fmt.Sprintf("An error occurred during file read to buffer: %v", err))
+		fmt.Printf("An error occurred during file read to buffer: %v", err)
 	}
 	contentType := http.DetectContentType(buf)
-	//ChannelLog(fmt.Sprintf("Content type is `%v`", contentType))
+	fmt.Printf("Content type is `%v`", contentType)
 	openFile.Close()
 	openFile, err = os.Open(file)
 
@@ -186,7 +188,7 @@ func (c *MagickCommand) Run(ctx ken.Context) (err error) {
 		src, err = webp.Decode(openFile)
 	}
 	if err != nil {
-		//ChannelLog(fmt.Sprintf("An error occurred during decode: %v", err))
+		fmt.Printf("An error occurred during decode: %v", err)
 		return
 	}
 
@@ -306,12 +308,16 @@ func (c *MagickCommand) Run(ctx ken.Context) (err error) {
 
 	fEdit, err = os.Create("image.png")
 	if err != nil {
-		//ChannelLog(fmt.Sprintf("error while creating image file: %v", err))
+		fmt.Printf("error while creating image file: %v", err)
 	}
 	png.Encode(fEdit, dst)
 
-	imagePath = execFolder + "\\image.png"
-	//ChannelLog(fmt.Sprintf(imagePath))
+	if runtime.GOOS == "windows" {
+		imagePath = execFolder + "\\image.png"
+		fmt.Println(imagePath)
+	} else {
+		imagePath = execFolder + "/image.png"
+	}
 
 	_, err = os.Open(imagePath)
 
